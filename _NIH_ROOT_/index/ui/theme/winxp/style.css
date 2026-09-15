@@ -1,0 +1,537 @@
+  /* ============================================================================
+     Windows XP ("Luna Blue") 스킨 - default 테마(../default/style.css)와 완전히 같은
+     선택자 구조를 그대로 따르는 "드롭인 교체" 스타일시트다. HTML/JS는 전혀 건드리지 않고,
+     환경설정의 테마 드롭다운이 이 파일의 <link href>만 바꿔치기한다
+     (applyTheme, _NIH_ROOT_/index/settings-startmenu.js).
+     레이아웃(flex/position/z-index/크기)은 default와 동일하게 유지하고, 색/테두리/그림자/폰트만
+     XP Luna Blue 느낌(글로시 파란 타이틀바 + 상단만 둥근 모서리 + 초록 시작버튼 + 파란 크롬 +
+     Bliss풍 그라디언트 바탕화면)으로 바꿨다.
+     ============================================================================ */
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  /* 드래그로 화면 텍스트/UI가 긁히는 것도(우클릭/드래그 우회의 전제 조건) 막는다(사용자 지시) -
+     입력창(검색창, 이름변경 대화상자 등)만 예외. */
+  body { user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; }
+  input, textarea { user-select: text; -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; cursor: text; }
+  body {
+    font-family: Tahoma, "Trebuchet MS", "Malgun Gothic", "맑은 고딕", sans-serif;
+    /* "Bliss" 벽지 느낌 - 위쪽 하늘색에서 아래쪽 잔디 초록으로 이어지는 그라디언트 (사진 없이 CSS만) */
+    background:
+      radial-gradient(120% 60% at 50% 0%, #bfe4ff 0%, transparent 55%),
+      linear-gradient(180deg, #3a8ee6 0%, #6fb6f2 26%, #bfe0b0 55%, #7cbb4c 72%, #4f9a34 100%);
+    min-height: 100%;
+    /* 매끈한(둥근 관절 + 옅은 그림자) XP 스타일 흰 화살표 커서 - 검은 테두리 + 살짝 그림자 */
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><polygon points="4,3 4,27 10,21.5 14.5,29.5 18.5,27.3 14.2,19.5 22,19.5" fill="rgba(0,0,0,0.32)" transform="translate(1,1.6)"/><polygon points="3,2 3,26 9,20.5 13.5,28.5 17.5,26.3 13.2,18.5 21,18.5" fill="black" stroke="black" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/><polygon points="5,6 5,21 9.2,17 13.5,24.7 15.3,23.7 11.2,16.2 17,16.2" fill="white" stroke="white" stroke-width="0.6" stroke-linejoin="round"/></svg>') 3 2, auto;
+    --cur-link: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="30" viewBox="0 0 26 30"><g transform="translate(1,1.6)" fill="rgba(0,0,0,0.32)"><rect x="9" y="1" width="5" height="13" rx="2.3"/><rect x="2" y="12" width="6" height="10" rx="2.6"/><rect x="4" y="9" width="17" height="15" rx="4"/></g><g fill="black" stroke="black" stroke-width="1.1" stroke-linejoin="round"><rect x="9" y="1" width="5" height="13" rx="2.3"/><rect x="2" y="12" width="6" height="10" rx="2.6"/><rect x="4" y="9" width="17" height="15" rx="4"/></g><g fill="white" stroke="white" stroke-width="0.5" stroke-linejoin="round"><rect x="10" y="2.4" width="3" height="10" rx="1.3"/><rect x="3.2" y="13" width="4" height="7.5" rx="1.6"/><rect x="5.3" y="10.3" width="14.5" height="12" rx="3"/></g></svg>') 11 2, pointer;
+  }
+
+  .desktop {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 24px 78px;
+  }
+
+  /* ---------- 창(window) ---------- */
+  .window {
+    position: relative;
+    width: 960px;
+    max-width: 100%;
+    height: 640px;
+    max-height: 85vh;
+    background: #ece9e2;
+    /* XP는 위쪽 모서리만 둥글다 - 아래쪽은 각짐 */
+    border-radius: 8px 8px 0 0;
+    border: 1px solid #0047AB;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,.5) inset,
+      0 14px 36px rgba(0,20,60,.45);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: width .15s ease, height .15s ease, border-radius .15s ease;
+  }
+  .window.resizing { transition: none; }
+  .window.positioned { max-width: none; max-height: none; }
+  .rz { position: absolute; z-index: 20; }
+  .rz-n, .rz-s { left: 6px; right: 6px; height: 6px; cursor: ns-resize; }
+  .rz-n { top: -3px; } .rz-s { bottom: -3px; }
+  .rz-e, .rz-w { top: 6px; bottom: 6px; width: 6px; cursor: ew-resize; }
+  .rz-e { right: -3px; } .rz-w { left: -3px; }
+  .rz-ne, .rz-nw, .rz-se, .rz-sw { width: 12px; height: 12px; }
+  .rz-ne { top: -3px; right: -3px; cursor: nesw-resize; }
+  .rz-nw { top: -3px; left: -3px; cursor: nwse-resize; }
+  .rz-se { bottom: -3px; right: -3px; cursor: nwse-resize; }
+  .rz-sw { bottom: -3px; left: -3px; cursor: nesw-resize; }
+  .window.maximized .rz { display: none; }
+  .window.maximized {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 48px;
+    width: auto; height: auto;
+    margin: 0;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+  }
+  .window.positioned { position: fixed; margin: 0; }
+  .window.minimized { display: none; }
+  .window.closed { display: none; }
+
+  .titlebar {
+    flex: 0 0 32px;
+    /* 글로시 파란 그라디언트 + 상단 밝은 하이라이트 줄무늬 */
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 42%),
+      linear-gradient(180deg, #1B85FF 0%, #0A5AE0 18%, #0850D6 55%, #3A93FF 100%);
+    border-bottom: 1px solid #0047AB;
+    border-radius: 7px 7px 0 0;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    user-select: none;
+  }
+  .tb-icon { font-size: 15px; margin-right: 7px; filter: drop-shadow(0 1px 0 rgba(0,0,0,.4)); }
+  .tb-title {
+    font-size: 13px; font-weight: 700; color: #fff; flex: 1; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,30,90,.6);
+    letter-spacing: .2px;
+  }
+  .tb-controls { display: flex; height: 100%; align-items: center; gap: 3px; padding-right: 4px; }
+  .tb-btn {
+    width: 22px; height: 20px; padding: 0; border: 1px solid rgba(255,255,255,.6);
+    border-radius: 4px;
+    background: linear-gradient(180deg, #e8f2ff 0%, #a9c9f0 45%, #6fa0e0 100%);
+    font-size: 11px; line-height: 1; color: #08306b; cursor: var(--cur-link);
+    box-shadow: 0 1px 1px rgba(0,0,0,.25);
+  }
+  .tb-btn:hover { background: linear-gradient(180deg, #ffffff 0%, #c3ddfb 45%, #85b3ec 100%); }
+  .tb-close { background: linear-gradient(180deg, #ffb3a6 0%, #e2483a 45%, #b81f14 100%); color: #fff; }
+  .tb-close:hover { background: linear-gradient(180deg, #ffc9bf 0%, #ff5b4a 45%, #d1281b 100%); color: #fff; }
+
+  /* ---------- 도구모음 / 주소표시줄 ---------- */
+  .toolbar {
+    flex: 0 0 42px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    background: linear-gradient(180deg, #f6f9fd 0%, #dbe8fb 100%);
+    border-bottom: 1px solid #a7c4e8;
+  }
+  .tool-btn {
+    width: 30px; height: 30px;
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: 5px;
+    cursor: var(--cur-link);
+    font-size: 14px;
+    color: #17417a;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tool-btn:hover:not(:disabled) {
+    background: linear-gradient(180deg, #fff6cf 0%, #ffdf7e 100%);
+    border-color: #e8b73a;
+  }
+  .tool-btn:disabled { color: #a9b8c9; cursor: inherit; }
+  .nav-toggle { display: flex; }
+  .address-bar {
+    flex: 1; height: 28px;
+    background: #fff; border: 1px solid #7ba7dd; border-radius: 4px;
+    display: flex; align-items: center; padding: 0 8px; gap: 3px;
+    font-size: 12.5px; color: #222;
+    overflow-x: auto; white-space: nowrap;
+    box-shadow: inset 0 1px 2px rgba(30,80,160,.25);
+  }
+  .address-bar::-webkit-scrollbar { display: none; }
+  .crumb { cursor: var(--cur-link); padding: 2px 5px; border-radius: 3px; }
+  .crumb:hover { background: #cfe4fb; }
+  .crumb-sep { color: #8fa6c2; }
+  .search-box { width: 180px; height: 28px; flex: 0 0 auto; }
+  .search-box input {
+    width: 100%; height: 100%; box-sizing: border-box;
+    border: 1px solid #7ba7dd; border-radius: 4px; padding: 0 10px;
+    font-size: 12.5px; outline: none;
+    box-shadow: inset 0 1px 2px rgba(30,80,160,.25);
+  }
+  .search-box input:focus { border-color: #2a72d8; box-shadow: 0 0 0 2px rgba(50,130,230,.3) inset; }
+
+  /* ---------- 본문 (탐색창 + 내용창) ---------- */
+  .body-area { flex: 1; display: flex; min-height: 0; position: relative; }
+
+  .nav-pane {
+    width: 220px; flex: 0 0 220px;
+    background: linear-gradient(180deg, #dcebfc 0%, #b7d5f5 100%);
+    border-right: 1px solid #9dbde3;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding: 8px 0;
+    font-size: 13px;
+    user-select: none;
+    outline: none;
+  }
+  .nav-pane:not(.open) { display: none; }
+  .nav-root {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 10px; margin: 0 5px 3px;
+    cursor: var(--cur-link); font-weight: 700; color: #103868;
+    border-radius: 5px; border: 1px solid transparent;
+    width: fit-content; max-width: none;
+  }
+  .nav-root:hover { background: rgba(255,255,255,.55); }
+  .nav-root.selected {
+    background: linear-gradient(180deg, #ffe28a 0%, #ffc848 100%);
+    border-color: #d99a1f; color: #402400;
+  }
+  .nav-root.kbd-focus, .tree-row.kbd-focus { outline: 1px dotted #103868; outline-offset: -1px; }
+  .tree-row {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 6px; margin: 0 5px;
+    cursor: var(--cur-link); border-radius: 5px; color: #16345c;
+    white-space: nowrap; border: 1px solid transparent;
+    width: fit-content; max-width: none;
+  }
+  .tree-row:hover { background: rgba(255,255,255,.55); }
+  .tree-row.selected {
+    background: linear-gradient(180deg, #ffe28a 0%, #ffc848 100%);
+    border-color: #d99a1f; color: #402400;
+  }
+  .tree-row.tree-loading { color: #6a86a8; font-style: italic; cursor: inherit; }
+  .tree-row.tree-loading:hover { background: transparent; }
+  .tree-arrow { width: 14px; flex: 0 0 14px; text-align: center; color: #35618f; font-size: 10px; }
+  .tree-arrow.empty { visibility: hidden; }
+
+  .content-pane { flex: 1; overflow-y: auto; padding: 14px; background: #fff; position: relative; outline: none; user-select: none; }
+  .search-heading { font-size: 12.5px; color: #556; margin-bottom: 10px; }
+  .select-box {
+    position: absolute; border: 1px solid #3169c6; background: rgba(96,150,230,.25);
+    pointer-events: none; z-index: 5; border-radius: 2px;
+  }
+  .grid { display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; }
+  .grid-item {
+    width: 96px; padding: 8px 4px; text-align: center;
+    border-radius: 5px; cursor: var(--cur-link); border: 1px solid transparent;
+  }
+  .grid-item.flat { width: 132px; }
+  .grid-item:hover { background: #dcebff; border-color: #a9cbf5; }
+  .grid-item.selected { background: #bcdcff; border-color: #4b8fe0; }
+  .grid-item .icon { margin: 0 auto 6px; display: flex; justify-content: center; }
+  .grid-item .label { font-size: 12px; color: #16345c; word-break: break-word; line-height: 1.3; }
+  .grid-item .sub { font-size: 10.5px; color: #7590ad; margin-top: 3px; word-break: break-all; line-height: 1.25; }
+  .empty-msg, .status-msg { color: #6a86a8; font-size: 13px; padding: 18px 4px; }
+
+  .status-bar {
+    flex: 0 0 26px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 10px; background: linear-gradient(180deg, #eef4fc 0%, #d4e4f7 100%);
+    border-top: 1px solid #aec9e8;
+    font-size: 12px; color: #17417a;
+  }
+  .status-bar a { color: #0850d6; text-decoration: none; }
+  .status-bar a:hover { text-decoration: underline; }
+
+  /* ---------- 작업 표시줄 / 시작 메뉴 / 트레이 ---------- */
+  .taskbar {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 32px;
+    display: flex; align-items: center; justify-content: flex-start; gap: 6px;
+    padding-left: 4px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 30%),
+      linear-gradient(180deg, #2f7cf0 0%, #1560DE 12%, #0C4DC4 60%, #1560DE 100%);
+    border-top: 1px solid #0a3f9e;
+    box-shadow: 0 -1px 0 rgba(255,255,255,.25) inset;
+    z-index: 10;
+  }
+  .start-btn, .taskbar-app {
+    height: 26px; padding: 0 12px;
+    display: flex; align-items: center; gap: 6px;
+    border-radius: 5px; cursor: var(--cur-link); font-size: 12.5px; color: #fff;
+  }
+  .start-btn {
+    width: auto; justify-content: center; padding: 0 16px 0 10px; font-size: 15px; font-weight: 800;
+    color: #fff; text-shadow: 0 1px 1px rgba(0,40,0,.5);
+    border-radius: 4px 14px 14px 4px;
+    background: linear-gradient(180deg, #8FE870 0%, #4CB92E 40%, #2E8E17 70%, #226B10 100%);
+    border: 1px solid #1c5c0c;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 1px 2px rgba(0,0,0,.4);
+  }
+  .start-btn:hover, .taskbar-app:hover { background: rgba(255,255,255,.16); }
+  .start-btn:hover {
+    background: linear-gradient(180deg, #a3f286 0%, #5fcb3f 40%, #379a1d 70%, #277512 100%);
+  }
+  .taskbar-app {
+    background: linear-gradient(180deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.02) 100%);
+    border: 1px solid rgba(255,255,255,.2);
+  }
+  .taskbar-app.active {
+    background: linear-gradient(180deg, #0a3f9e 0%, #1c5fce 100%);
+    border-bottom: 2px solid #ffd24a;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.5);
+  }
+  .tray-right { position: absolute; right: 10px; display: flex; align-items: center; gap: 10px; }
+  .clock { font-size: 12px; color: #fff; text-align: center; line-height: 1.3; user-select: none; white-space: nowrap; text-shadow: 0 1px 1px rgba(0,0,0,.4); }
+  .battery {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 6px; border-radius: 4px; cursor: inherit;
+    font-size: 12.5px; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.4);
+  }
+  .battery:hover { background: rgba(255,255,255,.15); }
+  .battery .bicon { font-size: 15px; line-height: 1; }
+  .weather {
+    display: flex; align-items: center; gap: 5px; cursor: var(--cur-link);
+    font-size: 12px; color: #fff; padding: 5px 8px; border-radius: 5px; user-select: none;
+    text-shadow: 0 1px 1px rgba(0,0,0,.4);
+  }
+  .weather:hover { background: rgba(255,255,255,.15); }
+  .weather .wicon { font-size: 16px; line-height: 1; }
+  .weather-big { display: flex; align-items: center; gap: 14px; }
+  .weather-big .wicon-big { font-size: 44px; line-height: 1; }
+  .weather-big .temp-big { font-size: 28px; font-weight: 700; color: #103868; }
+  .weather-place { font-size: 12.5px; color: #6a86a8; margin-bottom: 4px; }
+  .weather-desc { font-size: 13px; color: #345; margin: 6px 0 4px; }
+  .weather-detail-row { font-size: 12.5px; color: #234; padding: 2px 0; }
+  /* 요청 #132: 시계 클릭 -> 이번 달 달력 팝업(오늘 강조) */
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: 4px; }
+  .calendar-cell { text-align: center; font-size: 12px; padding: 5px 0; border-radius: 3px; color: #234; }
+  .calendar-head { font-weight: 700; color: #6a86a8; font-size: 11px; }
+  .calendar-empty { visibility: hidden; }
+  .calendar-today {
+    background: linear-gradient(180deg, #ffe28a 0%, #ffc848 100%);
+    border: 1px solid #d99a1f; font-weight: 700; color: #402400;
+  }
+
+  .tray-icons { display: flex; align-items: center; gap: 4px; }
+  .tray-icon {
+    width: 26px; height: 26px; border-radius: 5px; cursor: var(--cur-link);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; background: rgba(255,255,255,.08); font-size: 12px; font-weight: 700; color: #fff;
+  }
+  .tray-icon:hover { background: rgba(255,255,255,.22); }
+  .tray-icon img { width: 62%; height: 62%; object-fit: contain; }
+
+  .start-menu {
+    position: fixed; left: 6px; bottom: 40px; width: 280px;
+    background: #fff;
+    border: 1px solid #0047AB; border-radius: 10px 10px 8px 8px;
+    box-shadow: 0 16px 40px rgba(0,20,60,.5);
+    padding: 0 0 8px; display: none; z-index: 2010;
+    overflow: hidden;
+  }
+  .start-menu.open { display: block; }
+  .start-menu-user {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    background: linear-gradient(180deg, #1e86ff 0%, #0850d6 60%, #0a3f9e 100%);
+    border-bottom: 3px solid #0047AB;
+  }
+  .avatar {
+    width: 44px; height: 44px; border-radius: 6px; flex: 0 0 44px;
+    background: #fff; color: #0850d6; font-size: 17px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .user-info { min-width: 0; }
+  .user-name { font-size: 14px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  .user-caption { font-size: 11px; color: #dceaff; margin-top: 1px; }
+  .user-link { font-size: 12px; color: #fff; text-decoration: underline; display: inline-block; margin-top: 4px; }
+  .user-link:hover { text-decoration: none; }
+
+  .start-menu-divider { height: 1px; background: #c9dcf5; margin: 8px 10px; }
+  .start-apps { display: flex; flex-direction: column; gap: 1px; max-height: 260px; overflow-y: auto; padding: 6px 6px 0; }
+  .start-app-row {
+    display: flex; align-items: center; gap: 9px; padding: 6px 8px;
+    border-radius: 5px; cursor: var(--cur-link); font-size: 12.5px; color: #16345c;
+  }
+  .start-app-row:hover { background: linear-gradient(180deg, #7fb8ff 0%, #3b8fee 100%); color: #fff; }
+  .start-app-icon {
+    width: 20px; height: 20px; flex: 0 0 20px; border-radius: 4px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    background: #e6f0fc; font-size: 11px; font-weight: 700; color: #17417a;
+  }
+  .start-app-icon img { width: 100%; height: 100%; object-fit: cover; }
+  .start-app-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .start-app-chevron { color: #7590ad; font-size: 10px; }
+  .start-app-row:hover .start-app-chevron { color: #fff; }
+  .start-submenu {
+    position: fixed; min-width: 190px; max-width: 260px;
+    background: #fff;
+    border: 1px solid #0047AB; border-radius: 8px;
+    box-shadow: 0 14px 34px rgba(0,20,60,.45);
+    padding: 6px; z-index: 2015; display: none;
+  }
+  .start-submenu.open { display: block; }
+
+  /* ---------- 환경설정 창 ---------- */
+  .settings-overlay {
+    position: fixed; inset: 0; background: rgba(0,10,30,.3);
+    display: none; align-items: center; justify-content: center; z-index: 2020;
+  }
+  .settings-overlay.open { display: flex; }
+  .settings-panel {
+    width: 380px; max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 48px);
+    background: #ece9e2;
+    border: 1px solid #0047AB; border-radius: 9px 9px 0 0;
+    box-shadow: 0 20px 60px rgba(0,10,40,.5);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .settings-titlebar {
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 42%),
+      linear-gradient(180deg, #1B85FF 0%, #0A5AE0 18%, #0850D6 55%, #3A93FF 100%);
+    font-size: 13.5px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,30,90,.6);
+  }
+  .settings-close {
+    border: 1px solid rgba(255,255,255,.6); background: linear-gradient(180deg, #ffb3a6 0%, #e2483a 45%, #b81f14 100%);
+    font-size: 12px; color: #fff; cursor: var(--cur-link); padding: 2px 8px; border-radius: 4px;
+  }
+  .settings-close:hover { background: linear-gradient(180deg, #ffc9bf 0%, #ff5b4a 45%, #d1281b 100%); }
+  .settings-body { padding: 14px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+  .settings-row { display: flex; flex-direction: column; gap: 4px; }
+  .settings-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #16345c; cursor: var(--cur-link); }
+  .settings-check input { width: 15px; height: 15px; }
+  .settings-hint { font-size: 11.5px; color: #6a86a8; margin-left: 23px; line-height: 1.4; }
+  .settings-label { font-size: 13px; color: #16345c; }
+  .settings-select { height: 30px; border: 1px solid #7ba7dd; border-radius: 4px; padding: 0 8px; font-size: 12.5px; background: #fff; }
+  .settings-divider { height: 1px; background: #c9dcf5; }
+  .settings-button {
+    height: 30px; border: 1px solid #b23a2a; border-radius: 5px; padding: 0 12px;
+    font-size: 12.5px; background: linear-gradient(180deg, #ffb3a6 0%, #e2483a 100%); color: #fff; cursor: var(--cur-link); align-self: flex-start;
+    text-shadow: 0 1px 1px rgba(0,0,0,.3);
+  }
+  .settings-button:hover { background: linear-gradient(180deg, #ffc9bf 0%, #ff5b4a 100%); }
+  .settings-button-neutral {
+    border-color: #2a72d8; background: linear-gradient(180deg, #cfe4fb 0%, #8fbdf0 100%); color: #0a3f9e; text-shadow: none;
+  }
+  .settings-button-neutral:hover { background: linear-gradient(180deg, #e3f0fd 0%, #a9cef5 100%); }
+
+  /* ---------- 커스텀 확인/입력 대화상자 (브라우저 기본 alert/confirm/prompt 대체) ---------- */
+  .confirm-overlay {
+    position: fixed; inset: 0; background: rgba(0,10,30,.3);
+    display: flex; align-items: center; justify-content: center; z-index: 2050;
+  }
+  .confirm-panel {
+    width: min(340px, calc(100vw - 32px)); min-width: 260px; max-width: calc(100vw - 32px);
+    background: #ece9e2;
+    border: 1px solid #0047AB; border-radius: 9px;
+    box-shadow: 0 20px 60px rgba(0,10,40,.5);
+    padding: 18px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .confirm-message { font-size: 13px; color: #16345c; line-height: 1.5; white-space: pre-line; }
+  .confirm-input {
+    height: 32px; border: 1px solid #7ba7dd; border-radius: 4px; padding: 0 10px;
+    font-size: 13px; outline: none; box-shadow: inset 0 1px 2px rgba(30,80,160,.25);
+  }
+  .confirm-input:focus { border-color: #2a72d8; }
+  .confirm-buttons { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; } /* 요청 #157: 버튼이 많거나 길 때 깨지고 넘치는 대신 자연스러운 줄바꿈으로 */
+  .confirm-buttons .settings-button, .confirm-buttons .settings-button-neutral { align-self: auto; }
+  body.no-aero .confirm-panel { background: #ece9e2; }
+
+  /* ---------- 우클릭 커스텀 메뉴 ---------- */
+  .ctx-menu {
+    position: fixed; min-width: 170px;
+    background: #fff;
+    border: 1px solid #7ba7dd; border-radius: 6px;
+    box-shadow: 0 10px 30px rgba(0,10,40,.35);
+    padding: 4px; z-index: 2030; /* 가상 탐색기 창(.df-window, z-index 100+)보다 항상 위에 떠야 함 */
+  }
+  .ctx-item { padding: 7px 10px; font-size: 12.5px; color: #16345c; border-radius: 4px; cursor: var(--cur-link); }
+  .ctx-item:hover, .ctx-item.ctx-focused { background: linear-gradient(180deg, #7fb8ff 0%, #3b8fee 100%); color: #fff; }
+
+  /* ---------- 에어로(반투명 블러) 끄기 옵션 - 환경설정에서 토글, 기본 켜짐 ---------- */
+  body.no-aero .taskbar { backdrop-filter: none; }
+  body.no-aero .start-menu { backdrop-filter: none; }
+  body.no-aero .start-submenu { backdrop-filter: none; }
+  body.no-aero .settings-panel { backdrop-filter: none; }
+  body.no-aero .ctx-menu { backdrop-filter: none; }
+
+  /* ---------- 토스트(알림) ---------- */
+  .toast {
+    position: fixed; right: 16px; bottom: 68px; max-width: 320px;
+    background: linear-gradient(180deg, #2a72d8 0%, #0a3f9e 100%); color: #fff; border-radius: 8px;
+    padding: 10px 12px; font-size: 12.5px; line-height: 1.5;
+    border: 1px solid #0047AB;
+    box-shadow: 0 10px 30px rgba(0,10,40,.4);
+    display: flex; align-items: flex-start; gap: 8px;
+    opacity: 0; pointer-events: none; transform: translateY(6px);
+    transition: opacity .15s ease, transform .15s ease;
+    z-index: 2040; /* 가상 탐색기 창(.df-window, z-index 100+)보다 항상 위에 떠야 함 */
+  }
+  .toast.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+  .toast.warn { background: linear-gradient(180deg, #ffc94a 0%, #d98c0e 100%); color: #402400; border-color: #b8760c; }
+  .toast-msg { flex: 1; white-space: pre-line; word-break: break-word; }
+  .toast-close { background: transparent; border: none; color: #fff; opacity: .8; cursor: var(--cur-link); font-size: 14px; line-height: 1; padding: 0 2px; }
+  .toast-close:hover { opacity: 1; }
+
+  /* ============ 바탕화면 가상 파일시스템(dexie) - 아이콘 / 다중 탐색기 창 / 내장 에디터 ============ */
+  .desktop { position: relative; }
+  /* pointer-events:none이 핵심 - 아이콘이 없는 빈 공간은 클릭이 그대로 통과해서 메인 창(#win)이
+     눌리고, 아이콘 자기 자신에게만 다시 pointer-events:auto로 켜서 아이콘만 클릭 가능하게 한다. */
+  .df-icon-layer { position: absolute; inset: 0; bottom: 48px; z-index: 1; pointer-events: none; }
+  /* 방향키/F2/Delete가 동작하려면 포커스를 받을 수 있어야 하는데(tabIndex, desktop-fs.js),
+     기본 브라우저 포커스 링은 바탕화면에서 보기 거슬리므로 꺼둔다. */
+  .df-icon-layer:focus { outline: none; }
+  #win { z-index: 2; }
+  .df-icon {
+    position: absolute; width: 84px; padding: 8px 4px; border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    user-select: none; pointer-events: auto;
+  }
+  .df-icon:hover { background: rgba(255,255,255,.18); }
+  .df-icon.selected { background: rgba(49,105,198,.4); outline: 1px dotted rgba(255,255,255,.8); outline-offset: -2px; }
+  .df-icon .df-icon-glyph { pointer-events: none; }
+  .df-icon .df-icon-label {
+    pointer-events: none; font-size: 12px; color: #fff; text-align: center;
+    text-shadow: 0 1px 3px rgba(0,0,0,.75); word-break: break-word; line-height: 1.25; max-width: 100%;
+  }
+  .df-icon .df-icon-shortcut-badge {
+    position: absolute; left: 22px; top: 22px; font-size: 12px;
+    text-shadow: 0 1px 2px rgba(0,0,0,.7);
+  }
+  /* 드래그 중인 항목을 폴더 위로 끌고 왔을 때(=여기에 놓으면 그 폴더 안으로 이동) 강조 표시 */
+  .df-icon.df-drop-target { background: rgba(120,180,255,.4); outline: 1px dashed #bfe0ff; }
+  .grid-item.df-drop-target { background: #dcebff; border-color: #3b8fee; outline: 1px dashed #3b8fee; }
+  .tree-row.df-drop-target, .nav-root.df-drop-target { background: #dcebff; border-color: #3b8fee; outline: 1px dashed #3b8fee; }
+  /* 바탕화면 드래그 다중 선택(러버밴드) 박스 - XP의 파란 그라디언트 채움 + 파란 테두리 */
+  .df-select-box {
+    position: fixed; border: 1px solid #3169c6;
+    background: linear-gradient(180deg, rgba(150,190,255,.35), rgba(90,150,230,.2));
+    pointer-events: none; z-index: 1; border-radius: 2px;
+  }
+
+  @media (max-width: 720px) {
+    .desktop { padding: 8px 8px 64px; }
+    .window { height: 90vh; max-height: none; }
+    .search-box { display: none; }
+    .nav-toggle { display: flex; }
+    .nav-pane {
+      position: absolute; z-index: 5; top: 0; bottom: 0; left: 0;
+      transform: translateX(-100%);
+      transition: transform .15s ease;
+      box-shadow: 2px 0 10px rgba(0,0,0,.15);
+    }
+    .nav-pane.open { transform: translateX(0); }
+  }
+
+  /* ============ 가짜 마우스(커스텀 커서) 예외 규칙 (요청 11, 정정됨) ============
+     예전엔 "보통 상태"/"평범한 기본 커서"를 브라우저 네이티브 커서(cursor:default)로 잘못
+     구현했었다 - 사용자 지시로 정정: 이 앱 안에서는 네이티브 커서가 아예 나오면 안 되고,
+     "보통 상태"란 body에 깔아둔 커스텀 화살표(가짜 마우스)를 그대로 상속하는 것을 뜻한다.
+     시작/탐색기/배터리/날씨는 각자 자기 규칙에서 클릭 가능 표시로 cursor:pointer를 갖고
+     있었는데(날씨/배터리는 눌러서 상세 정보를 보여줌), 그걸 그대로 var(--cur-link)로
+     바꾸면 안 되고(사용자 지시 - 이 넷은 "평범한" 상태여야 함) 여기서 cursor:inherit으로
+     다시 body의 화살표를 상속하도록 되돌린다. 바탕화면 아이콘(.df-icon)과 시계(.clock)는
+     애초에 자기 cursor 규칙이 없어 상속만으로 이미 화살표이므로 별도 규칙이 필요 없다.
+     반대로 "하이퍼링크처럼 눌리는 곳"도 네이티브 pointer가 아니라 --cur-link(스킨별 커스텀
+     손가락 커서)를 쓴다 - 트레이 퀵런치 아이콘, 시작메뉴 팝업 항목(.start-app-row는 트레이
+     아이콘의 하위 메뉴에도 재사용됨)이 여기 해당하고, 나머지 클릭 가능 요소들(탐색창/뒤로/
+     앞으로/위로/새로고침/주소 표시줄/트리/탐색기 내 파일·폴더 등)은 위에서 이미 cursor:pointer를
+     전부 var(--cur-link)로 일괄 치환해뒀다. */
+  .start-btn, .taskbar-app, .battery, .weather { cursor: inherit; }
+  .tray-icon { cursor: var(--cur-link); }
+  .user-link { cursor: var(--cur-link); }

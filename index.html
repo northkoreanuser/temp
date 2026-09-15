@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Repo Index</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.4/dexie.min.js"></script>
+<!-- 창 스킨(테마) 스타일시트 - 환경설정에서 즉시 바뀐다(applyTheme, _NIH_ROOT_/index/settings-startmenu.js 참고).
+     _NIH_ROOT_ 아래에 있어서 색인 트리에는 안 보이지만 GitHub Pages는 그대로 서빙한다. -->
+<link rel="stylesheet" id="themeLink" href="_NIH_ROOT_/index/ui/theme/win7/style.css">
+</head>
+<body>
+
+<div class="desktop">
+  <div class="df-icon-layer" id="dfIconLayer"></div>
+  <div class="window closed" id="win">
+    <div class="rz rz-n"></div><div class="rz rz-s"></div><div class="rz rz-e"></div><div class="rz rz-w"></div>
+    <div class="rz rz-ne"></div><div class="rz rz-nw"></div><div class="rz rz-se"></div><div class="rz rz-sw"></div>
+    <div class="titlebar" id="titlebar">
+      <div class="tb-icon">📁</div>
+      <div class="tb-title" id="winTitle">Repo Index</div>
+      <div class="tb-controls">
+        <button class="tb-btn" id="btnMin" title="최소화">&#x2013;</button>
+        <button class="tb-btn" id="btnMax" title="최대화">&#x25A1;</button>
+        <button class="tb-btn tb-close" id="btnClose" title="닫기">&#x2715;</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="tool-btn nav-toggle" id="btnNavToggle" title="탐색창">&#9776;</button>
+      <button class="tool-btn" id="btnBack" title="뒤로" disabled>&#8592;</button>
+      <button class="tool-btn" id="btnForward" title="앞으로" disabled>&#8594;</button>
+      <button class="tool-btn" id="btnUp" title="위로" disabled>&#8593;</button>
+      <button class="tool-btn" id="btnRefresh" title="이 폴더 다시 읽기 + GitHub과 비교">&#8635;</button>
+      <div class="address-bar" id="breadcrumb"></div>
+      <div class="search-box"><input id="searchInput" placeholder="전체 검색" /></div>
+    </div>
+
+    <div class="body-area">
+      <div class="nav-pane" id="navPane"></div>
+      <div class="content-pane" id="contentPane">
+        <div class="status-msg">불러오는 중...</div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <span id="statusText"></span>
+      <span id="repoLink"></span>
+    </div>
+  </div>
+</div>
+
+<div class="start-menu" id="startMenu">
+  <div class="start-menu-user">
+    <div class="avatar" id="startAvatar">👤</div>
+    <div class="user-info">
+      <div class="user-name" id="startUserName">-</div>
+      <div class="user-caption">GitHub 계정</div>
+      <a class="user-link" id="startUserLink" target="_blank" rel="noopener noreferrer">GitHub 프로필 열기 ↗</a>
+    </div>
+  </div>
+  <div class="start-menu-divider"></div>
+  <div class="start-apps" id="startApps"></div>
+  <div class="start-menu-divider"></div>
+  <div class="start-app-row" id="settingsMenuRow">
+    <div class="start-app-icon" id="settingsMenuIcon">&#9881;</div>
+    <span class="start-app-name">설정</span>
+  </div>
+</div>
+
+<div class="taskbar" id="taskbar">
+  <div class="start-btn" id="startBtn" title="시작">&#8862;</div>
+  <div class="taskbar-app" id="taskbarApp">📁 탐색기</div>
+  <div class="tray-icons" id="trayIcons"></div>
+  <div class="tray-right">
+    <div class="battery" id="batteryWidget" title="배터리" style="display:none;"></div>
+    <div class="weather" id="weatherWidget" title="날씨 자세히 보기" style="display:none;"></div>
+    <div class="clock" id="clock"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="_NIH_ROOT_/index/state.js"></script>
+<script src="_NIH_ROOT_/index/window-chrome.js"></script>
+<script src="_NIH_ROOT_/index/app-window.js"></script>
+<script src="_NIH_ROOT_/index/settings-startmenu.js"></script>
+<script src="_NIH_ROOT_/index/dialogs-toast.js"></script>
+<script src="_NIH_ROOT_/index/local-helper.js"></script>
+<script src="_NIH_ROOT_/index/context-menu.js"></script>
+<script src="_NIH_ROOT_/index/data-and-hash.js"></script>
+<script src="_NIH_ROOT_/index/keyboard-and-activate.js"></script>
+<script src="_NIH_ROOT_/index/tree-pane.js"></script>
+<script src="_NIH_ROOT_/index/content-pane.js"></script>
+<script src="_NIH_ROOT_/index/tags.js"></script>
+<script src="_NIH_ROOT_/index/search-and-status.js"></script>
+<script src="_NIH_ROOT_/index/bootstrap.js"></script>
+<script src="_NIH_ROOT_/index/desktop-fs.js"></script>
+<script src="_NIH_ROOT_/index/editor.js"></script>
+<script src="_NIH_ROOT_/index/menu-maker.js"></script>
+<script src="_NIH_ROOT_/index/hls-player.js"></script>
+
+</body>
+</html>

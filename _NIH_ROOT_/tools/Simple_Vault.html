@@ -1,0 +1,1406 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Vault — PQC File Vault</title>
+<style>
+:root{
+  --bg:#f4f6fa;--panel:#fff;--panel2:#f8fafc;--text:#111827;--muted:#667085;
+  --border:#d8dee9;--accent:#315efb;--accent2:#2448c8;--danger:#d92d20;
+  --success:#067647;--warn-bg:#fffaeb;--warn-border:#fedf89;--warn-text:#92400e;
+  --mono-bg:#eef2f7;--input:#fff;--shadow:0 18px 60px #10182818;
+  --input-border:#d8dee9;
+}
+@media(prefers-color-scheme:dark){
+:root{--bg:#0b0e13;--panel:#11161f;--panel2:#161c26;--text:#edf2f7;--muted:#9aa6b5;
+--border:#293241;--accent:#6f8cff;--accent2:#8ca4ff;--danger:#ff6b6b;--success:#55c991;
+--warn-bg:#33270e;--warn-border:#735d1b;--warn-text:#ffd166;--mono-bg:#0c1118;--input:#0e141d;--shadow:0 18px 60px #0008;--input-border:#293241}
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 50% -10%,#315efb18,transparent 35%),var(--bg);color:var(--text);
+font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{width:min(900px,calc(100% - 28px));margin:0 auto;padding:56px 0 70px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+.brand h1{font-size:30px;margin:0 0 6px;letter-spacing:-.04em}.brand p{margin:0;color:var(--muted)}
+.gear{position:fixed;right:22px;top:18px;border:1px solid var(--border);background:var(--panel);color:var(--text);
+width:44px;height:44px;border-radius:13px;font-size:21px;box-shadow:0 8px 24px #0001;z-index:20}
+.dot{position:absolute;right:7px;top:6px;width:7px;height:7px;border-radius:50%;background:var(--accent);display:none}
+.dot.on{display:block}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}
+.main{padding:28px}
+.dropzone{border:2px dashed var(--border);border-radius:19px;min-height:230px;display:flex;align-items:center;justify-content:center;
+text-align:center;padding:28px;transition:.15s;background:var(--panel2);cursor:pointer}
+.dropzone.drag{border-color:var(--accent);background:#315efb0b;transform:scale(1.005)}
+.dropzone.has-file{border-color:var(--accent);background:#315efb0d}
+.dropzone h2{margin:0 0 8px;font-size:22px}.dropzone p{margin:0;color:var(--muted)}
+.dropzone small{display:block;margin-top:14px;color:var(--muted)}
+.panel{margin-top:20px;padding:22px;border:1px solid var(--border);border-radius:19px;background:var(--panel2);animation:fadein .15s ease}
+.hidden{display:none!important}
+.row{display:flex;gap:12px;align-items:center}.row>*{min-width:0}.grow{flex:1}
+label{display:block;font-size:13px;font-weight:700;margin:0 0 7px}
+input[type=text],input[type=password],input[type=number]{width:100%;padding:11px 12px;border:1px solid var(--input-border);border-radius:11px;background:var(--input);color:var(--text);outline:none;transition:border-color .2s, box-shadow .2s}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px #315efb18}
+input::placeholder{color:var(--muted);opacity:0.6}
+input.error{border-color:var(--danger)!important;box-shadow:0 0 0 3px #d92d2033!important}
+input.error-shake{animation:shake .4s}
+button.primary,button.secondary,button.danger,button.ghost{border:0;border-radius:11px;padding:11px 15px;font-weight:750}
+button.primary{background:var(--accent);color:white}button.primary:hover{background:var(--accent2)}
+button.primary:disabled{opacity:0.5;cursor:not-allowed}
+button.secondary{background:var(--text);color:var(--panel)}button.danger{background:var(--danger);color:#fff}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.segment{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border);border-radius:12px;padding:3px;background:var(--panel);margin-bottom:18px}
+.segment button{border:0;background:transparent;color:var(--muted);padding:10px;border-radius:9px;font-weight:750}
+.segment button.active{background:var(--accent);color:white}
+.field{margin-top:15px}.hint{font-size:12px;color:var(--muted);margin-top:6px}
+.checkbox{display:flex;gap:10px;align-items:center;margin-top:17px}.checkbox input{width:18px;height:18px}
+.checkbox label{margin:0}.disabled{opacity:.5}
+.keyline{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;background:var(--mono-bg);padding:10px;border-radius:10px;
+word-break:break-all;max-height:100px;overflow:auto}
+.settings{position:fixed;inset:0;background:#0006;z-index:30;display:flex;justify-content:flex-end}
+.settings-inner{width:min(520px,100%);height:100%;overflow:auto;background:var(--panel);padding:25px;box-shadow:-20px 0 50px #0003;animation:fadein .18s}
+.settings-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.settings-head h2{margin:0}
+.loadzone{min-height:120px}.loadzone p{font-size:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.block{padding:15px;border:1px solid var(--border);border-radius:14px;background:var(--panel2);margin-top:13px}
+.block h3{font-size:14px;margin:0 0 10px}
+.addr-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.status{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.55}
+.banner{padding:12px 14px;border-radius:12px;margin-top:12px;font-size:13px;line-height:1.5}
+.banner.success{background:#ecfdf3;color:var(--success);border:1px solid #abefc6}
+.banner.warn{background:var(--warn-bg);color:var(--warn-text);border:1px solid var(--warn-border)}
+.banner.danger{background:#fef3f2;color:var(--danger);border:1px solid #fecdca}
+@media(prefers-color-scheme:dark){.banner.success{background:#092b1c}.banner.danger{background:#351516}}
+.hintbox{white-space:pre-wrap;padding:13px;border:1px solid var(--border);border-radius:12px;background:var(--panel);font-size:13px;margin-bottom:14px;display:block}
+.hintbox.hidden{display:none!important}
+.hintbox hr{border:0;border-top:1px solid var(--border);margin:10px 0}
+.filechip{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border:1px solid var(--border);border-radius:12px;margin-bottom:14px}
+.filechip span:last-child{color:var(--muted);font-size:12px}
+.statusline{min-height:22px;color:var(--muted);font-size:13px;margin-top:11px}
+.progress{height:4px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:12px}.progress i{display:block;height:100%;width:40%;background:var(--accent);animation:load 1s infinite}
+.modal{position:fixed;inset:0;background:#0007;display:flex;align-items:center;justify-content:center;z-index:50;padding:18px}
+.modalbox{width:min(460px,100%);background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:22px;box-shadow:var(--shadow);animation:fadein .18s}
+.modalbox h3{margin:0 0 10px}.modalbody{white-space:pre-wrap;line-height:1.55;color:var(--muted);font-size:14px;margin-bottom:15px}
+.modalbody .memo-text{color:var(--text);font-weight:500}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--panel);padding:10px 15px;border-radius:12px;z-index:60;box-shadow:0 8px 30px #0004}
+.mobile-only{display:none}
+@media(pointer:coarse){.mobile-only{display:inline-flex}}
+@media(max-width:620px){.app{padding-top:35px}.main{padding:16px}.grid3{grid-template-columns:1fr}.row{flex-wrap:wrap}.row>*{width:100%}.gear{right:13px;top:13px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@keyframes fadein{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes load{0%{transform:translateX(-120%)}100%{transform:translateX(280%)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+.shake{animation:shake .5s ease}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand"><h1>Vault</h1><p>브라우저 안에서 끝나는 PQC 파일 암호화</p></div>
+  </div>
+
+  <main class="card">
+    <div class="main">
+      <div id="main-dropzone" class="dropzone" tabindex="0">
+        <div id="dropzone-content">
+          <h2>파일을 여기에 놓으세요</h2>
+          <p>VLT1이면 자동으로 복호화 · 그 외 파일은 암호화</p>
+          <small>클릭하여 파일 선택</small>
+        </div>
+        <input id="main-file-input" type="file" hidden>
+        <input id="signing-private-file-input" type="file" accept=".txt,.VaultKey" hidden>
+      </div>
+      <div id="main-file-chip" class="filechip hidden"><span id="main-file-name"></span><span id="main-file-kind"></span></div>
+
+      <section id="encrypt-panel" class="panel hidden">
+        <h2>암호화</h2>
+        <div class="segment">
+          <button id="encrypt-mode-password" class="active">비밀번호</button>
+          <button id="encrypt-mode-pqc">PQC 공개키</button>
+        </div>
+
+        <div id="password-encrypt-fields">
+          <div class="field"><label for="encrypt-password">비밀번호</label><input id="encrypt-password" type="password" autocomplete="new-password" placeholder="비밀번호 입력"></div>
+          <div class="field"><label for="encrypt-password-confirm">비밀번호 확인</label><input id="encrypt-password-confirm" type="password" autocomplete="new-password" placeholder="비밀번호 재입력"></div>
+        </div>
+
+        <div id="encrypt-pqc-fields" class="hidden">
+          <div id="encrypt-pqc-dropzone" class="dropzone" style="min-height:120px">
+            <div><b>수신자 결합 공개키</b><p>설정 패널의 공개키 또는 .txt/.VaultKey를 사용합니다.</p>
+            <input id="encrypt-pqc-file-input" type="file" accept=".txt,.VaultKey" hidden></div>
+          </div>
+        </div>
+
+        <div id="encrypt-hint-wrap" class="field hidden">
+          <label for="encrypt-hint">힌트 <button id="hint-help" class="ghost" style="padding:2px 7px">?</button></label>
+          <input id="encrypt-hint" type="text" placeholder="줄바꿈은 \n, 구분선은 ||">
+        </div>
+
+        <div id="sign-wrap" class="checkbox">
+          <input id="encrypt-sign-checkbox" type="checkbox">
+          <label for="encrypt-sign-checkbox">서명 포함</label>
+        </div>
+        <div id="sign-hint" class="hint">서명을 체크하면 암호화 마지막 단계에서 개인키를 선택하고 비밀번호를 입력합니다.</div>
+        <div id="encrypt-status" class="statusline"></div>
+        <button id="encrypt-execute-btn" class="primary" style="width:100%;margin-top:13px">암호화</button>
+      </section>
+
+      <section id="decrypt-panel" class="panel hidden">
+        <h2>복호화</h2>
+        <div id="decrypt-hint-box" class="hintbox hidden"></div>
+        <div id="decrypt-password-wrap">
+          <label for="decrypt-password">비밀번호</label><input id="decrypt-password" type="password" autocomplete="current-password" placeholder="비밀번호 입력">
+        </div>
+        <div id="decrypt-pqc-wrap" class="hidden">
+          <div id="decrypt-pqc-dropzone" class="dropzone" style="min-height:120px">
+            <div><b>결합 개인키</b><p id="decrypt-pqc-state">개인키를 로드하세요.</p>
+            <input id="decrypt-pqc-file-input" type="file" accept=".txt,.VaultKey" hidden></div>
+          </div>
+        </div>
+        <div id="status-decrypt" class="statusline"></div>
+        <div id="decrypt-signature-banner" class="hidden"></div>
+        <button id="decrypt-execute-btn" class="primary" style="width:100%;margin-top:13px">복호화</button>
+      </section>
+    </div>
+  </main>
+</div>
+
+<button id="settings-toggle" class="gear" title="설정">⚙<i id="settings-dot" class="dot"></i></button>
+
+<div id="settings-panel" class="settings hidden">
+  <aside class="settings-inner">
+    <div class="settings-head"><h2>설정</h2><button id="settings-close" class="ghost">닫기</button></div>
+
+    <div id="settings-dropzone" class="dropzone loadzone">
+      <div><b>키 로드</b><p>.txt 또는 .VaultKey</p><input id="settings-file-input" type="file" accept=".txt,.VaultKey" hidden></div>
+    </div>
+    <div id="settings-load-status" class="statusline"></div>
+
+	<div class="block">
+	  <h3>파일 암호화용 Argon2id</h3>
+	  <div class="grid3">
+		<div><label>메모리 MiB</label><input id="file-argon2-memory" type="number" min="8" step="8" value="512" placeholder="512"></div>
+		<div><label>반복</label><input id="file-argon2-iterations" type="number" min="1" max="20" value="6" placeholder="6"></div>
+		<div><label>병렬도</label><input id="file-argon2-parallelism" type="number" min="1" max="8" value="4" placeholder="4"></div>
+	  </div>
+	  <div class="hint" style="margin-top:4px">파일 암호화에 사용되는 Argon2id 파라미터입니다. (기본값: 메모리 사용량 512MiB, 반복 6회, 병렬도 4) - 높은 보안 수준</div>
+	</div>
+
+    <div class="block">
+      <h3>개인키 보호용 Argon2id</h3>
+      <div class="grid3">
+        <div><label>메모리 MiB</label><input id="key-argon2-memory" type="number" min="8" step="8" value="1024" placeholder="1024"></div>
+        <div><label>반복</label><input id="key-argon2-iterations" type="number" min="1" max="20" value="6" placeholder="6"></div>
+        <div><label>병렬도</label><input id="key-argon2-parallelism" type="number" min="1" max="8" value="8" placeholder="8"></div>
+      </div>
+      <div class="hint" style="margin-top:4px">개인키 암호화에 사용되는 Argon2id 파라미터입니다. (기본값: 메모리 사용량 1024MiB, 반복 6회, 병렬도 8)</div>
+    </div>
+
+    <div class="block">
+      <h3>키 쌍 생성</h3>
+      <button id="generate-key-btn" class="primary" style="width:100%">키 쌍 생성</button>
+      <div id="key-status" class="status">키가 로드되지 않았습니다.</div>
+    </div>
+
+    <div class="block">
+      <h3>공개키 주소</h3>
+      <div id="public-address" class="keyline">없음</div>
+      <div class="addr-actions">
+        <button id="apply-public" class="ghost">적용</button>
+        <button id="copy-public" class="ghost">복사</button>
+        <button id="save-public" class="ghost">TXT</button>
+        <button id="share-public" class="ghost mobile-only">공유</button>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>개인키 주소</h3>
+      <div id="private-address" class="keyline">없음</div>
+      <div class="addr-actions">
+        <button id="apply-private" class="ghost">적용</button>
+        <button id="copy-private" class="ghost">복사</button>
+        <button id="save-private" class="ghost">TXT</button>
+        <button id="share-private" class="ghost mobile-only">백업</button>
+        <button id="extract-public" class="ghost">공개키 추출</button>
+      </div>
+      <div class="addr-actions">
+        <button id="remove-private-password" class="ghost">개인키 보호 상태</button>
+        <button id="unload-keys" class="danger">키 언로드</button>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>핑거프린트 힌트 포함</h3>
+      <div class="checkbox" style="margin-top:4px">
+        <input id="fingerprint-toggle" type="checkbox">
+        <label for="fingerprint-toggle">활성화</label>
+      </div>
+      <div class="hint" style="margin-top:4px">활성화하면 암호화 시 발신자 핑거프린트가 힌트에 포함됩니다.</div>
+    </div>
+
+    <div id="mismatch-banner" class="banner danger hidden"></div>
+  </aside>
+</div>
+
+<div id="modal-overlay" class="modal hidden">
+  <div class="modalbox">
+    <h3 id="modal-title"></h3>
+    <div id="modal-body" class="modalbody"></div>
+    <input id="modal-input" type="password" class="hidden" placeholder="비밀번호 입력">
+    <input id="modal-memo-input" type="text" class="hidden" placeholder="메모 입력 (선택 사항)" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:11px;background:var(--input);color:var(--text);outline:none;margin-top:10px;">
+    <div class="modal-actions"><button id="modal-cancel-btn" class="ghost">취소</button><button id="modal-confirm-btn" class="primary">확인</button></div>
+  </div>
+</div>
+<div id="toast" class="toast hidden"></div>
+
+<script type="module">
+import { ml_kem768 } from "https://esm.sh/@noble/post-quantum@0.7.0/ml-kem.js";
+import { ml_dsa65 } from "https://esm.sh/@noble/post-quantum@0.7.0/ml-dsa.js";
+import { argon2id } from "https://esm.sh/hash-wasm@4.12.0";
+
+const CONSTANTS = Object.freeze({
+  KEY_VERSION:2, VAULT_VERSION:4, MAGIC_KEY:"VKEY", MAGIC_VAULT:"VLT1",
+  KEM_PUB:1184,KEM_PRIV:2400,KEM_CT:1088,
+  DSA_PUB:1952,DSA_PRIV:4032,DSA_SIG:3309,
+  COMBINED_PUB:3136,COMBINED_PRIV:8384,
+  FILE_SALT:16,IV:12,SIG_FP:8,HASH:32,
+  KEY_MEM_MIB:1024,KEY_ITER:6,KEY_PAR:8,
+  FILE_MEM_MIB:64,FILE_ITER:3,FILE_PAR:1
+});
+
+const testKey = ml_dsa65.keygen();
+if (testKey.publicKey.length !== CONSTANTS.DSA_PUB ||
+    testKey.secretKey.length !== CONSTANTS.DSA_PRIV) {
+  throw new Error("ML-DSA-65 라이브러리 길이가 사양과 다릅니다");
+}
+
+// 전역 상태
+let globalCombinedPublicKey = null;
+let globalPublicAddressBytes = null;
+let globalPrivateAddressBytes = null;
+let globalPrivateCanSign = false;
+let allowedMismatchFingerprints = new Set();
+
+let mainFile = null, mainFileBytes = null, decParsed = null;
+let encryptBusy = false, decryptBusy = false;
+let encryptMode = "password", encryptPqcRecipient = null, encryptPqcLoaded = false;
+let pendingPrivatePassword = null;
+
+const $ = id => document.getElementById(id);
+const te = new TextEncoder(), td = new TextDecoder();
+const clone = b => new Uint8Array(b);
+const concatBytes = (...xs) => { const n = xs.reduce((s, x) => s + x.length, 0); const o = new Uint8Array(n); let p = 0; for (const x of xs) { o.set(x, p); p += x.length } return o };
+const utf8Encode = s => te.encode(s);
+const utf8Decode = b => td.decode(b);
+function randomBytes(n) { const b = new Uint8Array(n); crypto.getRandomValues(b); return b }
+function wipeBytes(...buffers) { for (const b of buffers) { if (b instanceof Uint8Array) b.fill(0); } }
+function bytesEqual(a, b) { return a.length === b.length && a.every((v, i) => v === b[i]) }
+function mustLen(b, n, label) { if (b.length !== n) throw new Error(label + " 크기가 올바르지 않습니다"); return b }
+function u16(n) { const b = new Uint8Array(2); new DataView(b.buffer).setUint16(0, n, true); return b }
+function u32(n) { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, n, true); return b }
+function r16(b, p) { return new DataView(b.buffer, b.byteOffset + p, 2).getUint16(0, true) }
+function r32(b, p) { return new DataView(b.buffer, b.byteOffset + p, 4).getUint32(0, true) }
+function bytesToBase64Url(bytes) { let s = ""; const b = new Uint8Array(bytes); for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") }
+function base64UrlToBytes(s) { if (!/^[A-Za-z0-9_-]+$/.test(s)) throw new Error("주소가 손상되었습니다"); let t = s.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "="; const bin = atob(t), o = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) o[i] = bin.charCodeAt(i); return o }
+async function sha256(b) { return new Uint8Array(await crypto.subtle.digest("SHA-256", b)) }
+async function sha256Fingerprint(b) { return (await sha256(b)).slice(0, 8) }
+const fpHex = b => [...b].map(x => x.toString(16).padStart(2, "0")).join("");
+function keyBytesToAddress(bytes) { return "#" + bytesToBase64Url(bytes) }
+function addressToKeyBytes(s) { if (!s || !s.startsWith("#")) throw new Error("주소가 손상되었습니다"); return base64UrlToBytes(s.slice(1)) }
+function downloadBytes(bytes, name, type = "application/octet-stream") { const url = URL.createObjectURL(new Blob([bytes], { type })); const a = document.createElement("a"); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 300000) }
+function showToast(s) { $("toast").textContent = s; $("toast").classList.remove("hidden"); setTimeout(() => $("toast").classList.add("hidden"), 1800) }
+function nextPaint() { return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))) }
+
+async function argon(password, salt, memMiB, iterations, parallelism) {
+  return new Uint8Array(await argon2id({
+    password: utf8Encode(password), salt, memorySize: memMiB * 1024,
+    iterations, parallelism, hashLength: 32, outputType: "binary"
+  }));
+}
+async function aesKey(raw, usage) { return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, usage) }
+async function aesEncrypt(keyBytes, iv, plain, aad) { const k = await aesKey(keyBytes, ["encrypt"]); return new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: aad, tagLength: 128 }, k, plain)) }
+async function aesDecrypt(keyBytes, iv, cipher, aad) { const k = await aesKey(keyBytes, ["decrypt"]); return new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv, additionalData: aad, tagLength: 128 }, k, cipher)) }
+
+function buildKeyFile(keytype, payload) { return concatBytes(utf8Encode("VKEY"), new Uint8Array([2, keytype]), payload) }
+function parseKeyFile(bytes) {
+  if (bytes.length < 6 || utf8Decode(bytes.slice(0, 4)) !== "VKEY") throw new Error("유효한 Vault 키가 아닙니다 (매직헤더 'VKEY' 불일치)");
+  const version = bytes[4], keytype = bytes[5], payload = bytes.slice(6);
+  if (version !== 2) throw new Error("유효한 Vault 키가 아닙니다 (지원하지 않는 버전)");
+  switch (keytype) {
+    case 0x22: return { keytype, kind: "pub", combined: false, enc: mustLen(payload, CONSTANTS.KEM_PUB, "공개키") };
+    case 0x23: return { keytype, kind: "priv-plain", combined: false, enc: mustLen(payload, CONSTANTS.KEM_PRIV, "개인키") };
+    case 0x24: return { keytype, kind: "priv-encrypted", combined: false, vaultBytes: payload };
+    case 0x40: return { keytype, kind: "pub", combined: true, enc: mustLen(payload, CONSTANTS.COMBINED_PUB, "공개키").slice(0, CONSTANTS.KEM_PUB), sign: payload.slice(CONSTANTS.KEM_PUB) };
+    case 0x41: return { keytype, kind: "priv-plain", combined: true,
+      enc: mustLen(payload, CONSTANTS.COMBINED_PRIV, "개인키").slice(0, CONSTANTS.KEM_PRIV),
+      sign: payload.slice(CONSTANTS.KEM_PRIV, CONSTANTS.KEM_PRIV + CONSTANTS.DSA_PRIV),
+      signPub: payload.slice(CONSTANTS.KEM_PRIV + CONSTANTS.DSA_PRIV) };
+    case 0x42: return { keytype, kind: "priv-encrypted", combined: true, vaultBytes: payload };
+    default: throw new Error("알 수 없는 키 종류입니다");
+  }
+}
+function readLenString(bytes, pos) { if (pos + 2 > bytes.length) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)"); const n = r16(bytes, pos); pos += 2; if (pos + n > bytes.length) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)"); return { value: utf8Decode(bytes.slice(pos, pos + n)), pos: pos + n } }
+function validateMeta(s, label) { if (utf8Encode(s).length > 65535) throw new Error(label + "이 너무 깁니다") }
+
+function buildHeader({ mode, sigBlock, salt, memorySizeKiB, iterations, parallelism, iv, kemCipherText, filename, mimetype, hint }) {
+  validateMeta(filename, "파일명"); validateMeta(mimetype, "MIME"); validateMeta(hint, "힌트");
+  const parts = [utf8Encode("VLT1"), new Uint8Array([4, mode, sigBlock ? 1 : 0])];
+  if (sigBlock) {
+    if (sigBlock.signature.length !== CONSTANTS.DSA_SIG) throw new Error("서명 길이가 올바르지 않습니다");
+    parts.push(u16(sigBlock.signature.length), sigBlock.signature, sigBlock.signerFp);
+  }
+  if (mode === 1) {
+    parts.push(u16(salt.length), salt, u32(memorySizeKiB), new Uint8Array([iterations, parallelism]), iv);
+  } else if (mode === 2) {
+    parts.push(u16(kemCipherText.length), kemCipherText, iv);
+  } else throw new Error("알 수 없는 암호화 모드입니다: 0x" + mode.toString(16));
+  const fn = utf8Encode(filename), mime = utf8Encode(mimetype), hi = utf8Encode(hint);
+  parts.push(u16(fn.length), fn, u16(mime.length), mime, u16(hi.length), hi);
+  return concatBytes(...parts);
+}
+function parseVault(bytes) {
+  if (bytes.length < 7 || utf8Decode(bytes.slice(0, 4)) !== "VLT1") throw new Error("유효한 Vault 파일이 아닙니다 (매직헤더 'VLT1' 불일치)");
+  const version = bytes[4], mode = bytes[5]; if (version !== 4 && version < 3) throw new Error("지원하지 않는 Vault 버전입니다");
+  if (mode !== 1 && mode !== 2) throw new Error("알 수 없는 암호화 모드입니다: 0x" + mode.toString(16));
+  let p = 6, sigFlag = 0, signature = null, signerFp = null;
+  if (version >= 4) { if (p >= bytes.length) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)"); sigFlag = bytes[p++]; if (sigFlag !== 0 && sigFlag !== 1) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)");
+    if (sigFlag) { if (p + 2 > bytes.length) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)"); const sl = r16(bytes, p); p += 2; if (sl !== CONSTANTS.DSA_SIG) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)"); if (p + sl + 8 > bytes.length) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)"); signature = bytes.slice(p, p + sl); p += sl; signerFp = bytes.slice(p, p + 8); p += 8 } }
+  let salt = null, memorySizeKiB = null, iterations = null, parallelism = null, iv = null, kemCipherText = null;
+  if (mode === 1) {
+    if (p + 2 > bytes.length) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)"); const sl = r16(bytes, p); p += 2; if (p + sl > bytes.length) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)"); salt = bytes.slice(p, p + sl); p += sl;
+    if (p + 6 + 12 > bytes.length) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)");
+    memorySizeKiB = r32(bytes, p); p += 4; iterations = bytes[p++]; parallelism = bytes[p++]; iv = bytes.slice(p, p + 12); p += 12;
+  } else {
+    if (p + 2 > bytes.length) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)"); const kl = r16(bytes, p); p += 2; if (p + kl + 12 > bytes.length) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)"); kemCipherText = bytes.slice(p, p + kl); p += kl; iv = bytes.slice(p, p + 12); p += 12;
+  }
+  const f = readLenString(bytes, p); p = f.pos; const m = readLenString(bytes, p); p = m.pos; let hint = "";
+  if (version >= 3) { const h = readLenString(bytes, p); p = h.pos; hint = h.value }
+  if (p >= bytes.length) throw new Error("파일이 손상되었거나 잘렸습니다 (헤더 길이 불일치)");
+  return { version, mode, sigFlag, signature, signerFp, salt, memorySizeKiB, iterations, parallelism, iv, kemCipherText, filename: f.value, mimetype: m.value, hint, ciphertext: bytes.slice(p), aad: bytes.slice(0, p) };
+}
+async function buildVaultPassword(plaintext, filename, mimetype, password, memoryMiB, iterations, parallelism, hint = "", sigBlock = null) {
+  const salt = randomBytes(16), key = await argon(password, salt, memoryMiB, iterations, parallelism), iv = randomBytes(12);
+  const header = buildHeader({ mode: 1, sigBlock, salt, memorySizeKiB: memoryMiB * 1024, iterations, parallelism, iv, filename, mimetype, hint });
+  const ciphertext = await aesEncrypt(key, iv, plaintext, header);
+  return concatBytes(header, ciphertext);
+}
+async function buildVaultPqc(plaintext, filename, mimetype, recipientPub, hint = "", sigBlock = null) {
+  const { cipherText, sharedSecret } = ml_kem768.encapsulate(recipientPub);
+  const iv = randomBytes(12);
+  const header = buildHeader({ mode: 2, sigBlock, kemCipherText: cipherText, iv, filename, mimetype, hint });
+  const ciphertext = await aesEncrypt(sharedSecret, iv, plaintext, header);
+  return concatBytes(header, ciphertext);
+}
+async function doDecrypt(parsed, ctx) {
+  if (parsed.mode === 1) {
+    if (!ctx.password) throw new Error("비밀번호를 입력하세요.");
+    const key = await argon(ctx.password, parsed.salt, parsed.memorySizeKiB / 1024, parsed.iterations, parsed.parallelism);
+    return aesDecrypt(key, parsed.iv, parsed.ciphertext, parsed.aad);
+  }
+  if (!ctx.privateKey) throw new Error("개인키가 없습니다.");
+  const shared = ml_kem768.decapsulate(parsed.kemCipherText, ctx.privateKey.enc);
+  return aesDecrypt(shared, parsed.iv, parsed.ciphertext, parsed.aad);
+}
+async function doDecryptWithVerify(parsed, ctx) {
+  const plaintext = await doDecrypt(parsed, ctx);
+  let verifyResult = { present: false };
+  if (parsed.sigFlag === 1) {
+    verifyResult.present = true;
+    if (!globalCombinedPublicKey || !globalCombinedPublicKey.sign) verifyResult.status = "no-key";
+    else {
+      const digest = await sha256(plaintext);
+      const ok = ml_dsa65.verify(parsed.signature, digest, globalCombinedPublicKey.sign);
+      verifyResult.status = ok ? "valid" : "invalid";
+      verifyResult.signerFp = parsed.signerFp;
+    }
+  }
+  return { plaintext, verifyResult };
+}
+
+function setPublic(pub, addressBytes) {
+  globalCombinedPublicKey = pub;
+  globalPublicAddressBytes = clone(addressBytes);
+  allowedMismatchFingerprints.clear();
+  updateKeyStatusUI();
+}
+
+function setPrivateAddress(addressBytes, canSign = false) {
+  globalPrivateAddressBytes = clone(addressBytes);
+  globalPrivateCanSign = canSign;
+  updateKeyStatusUI();
+}
+
+function clearAllKeys() {
+  globalCombinedPublicKey = null;
+  globalPublicAddressBytes = null;
+  globalPrivateAddressBytes = null;
+  globalPrivateCanSign = false;
+  pendingPrivatePassword = null;
+  allowedMismatchFingerprints.clear();
+  updateKeyStatusUI();
+}
+
+function updateKeyStatusUI() {
+  const hasPub = !!globalCombinedPublicKey;
+  const hasPrivAddr = !!globalPrivateAddressBytes;
+  $("settings-dot").classList.toggle("on", hasPub || hasPrivAddr);
+  $("key-status").innerHTML = hasPrivAddr
+    ? `개인키: 암호문 보관 (주소)<br>공개키: ${hasPub ? "로드됨" : "없음"}<br>서명: ${globalPrivateCanSign ? "가능" : "불가"}`
+    : `공개키: ${hasPub ? "로드됨" : "없음"}<br>개인키: 없음<br>서명: 불가`;
+  $("public-address").textContent = globalPublicAddressBytes ? keyBytesToAddress(globalPublicAddressBytes) : "없음";
+  $("private-address").textContent = globalPrivateAddressBytes ? keyBytesToAddress(globalPrivateAddressBytes) : "없음";
+  const cb = $("encrypt-sign-checkbox");
+  cb.disabled = false;
+  $("sign-hint").textContent = "서명을 체크하면 암호화 마지막 단계에서 개인키를 선택하고 비밀번호를 입력합니다.";
+}
+
+async function unlockPrivateKeyForSigning(vaultBytes, password) {
+  const parsed = parseKeyFile(vaultBytes);
+  if (parsed.keytype !== 0x42) throw new Error("암호화된 결합 개인키가 아닙니다");
+  const p = parseVault(parsed.vaultBytes);
+  if (p.mode !== 1) throw new Error("개인키 보호 파일 형식이 아닙니다");
+  const plain = await doDecrypt(p, { password });
+  if (plain.length === CONSTANTS.KEM_PRIV + CONSTANTS.DSA_PRIV + CONSTANTS.DSA_PUB) {
+    return {
+      enc: plain.slice(0, CONSTANTS.KEM_PRIV),
+      sign: plain.slice(CONSTANTS.KEM_PRIV, CONSTANTS.KEM_PRIV + CONSTANTS.DSA_PRIV),
+      signPub: plain.slice(CONSTANTS.KEM_PRIV + CONSTANTS.DSA_PRIV),
+      memo: p.filename || ""
+    };
+  }
+  if (plain.length === CONSTANTS.KEM_PRIV) {
+    return { enc: plain, memo: p.filename || "" };
+  }
+  throw new Error("개인키 크기가 올바르지 않습니다");
+}
+
+async function extractPublicFromPrivateKey(password) {
+  if (!globalPrivateAddressBytes) throw new Error("개인키가 없습니다");
+  const priv = await unlockPrivateKeyForSigning(globalPrivateAddressBytes, password);
+  if (!priv.signPub) throw new Error("이 개인키는 결합 개인키가 아닙니다 (서명 불가)");
+  const pubEnc = priv.enc.slice(1152, 1152 + CONSTANTS.KEM_PUB);
+  const pub = { enc: pubEnc, sign: priv.signPub };
+  const pubBytes = buildKeyFile(0x40, concatBytes(pubEnc, priv.signPub));
+  wipeBytes(priv.enc, priv.sign, priv.signPub);
+  return { pub, pubBytes, memo: priv.memo || "" };
+}
+
+async function loadPublicKeyOnly(file) {
+  const name = file.name.toLowerCase();
+  const raw = name.endsWith(".txt") ? extractAddress(await file.text()) : new Uint8Array(await file.arrayBuffer());
+  const parsed = parseKeyFile(raw);
+  if (![0x40, 0x22].includes(parsed.keytype)) throw new Error("공개키 파일이 아닙니다");
+  if (parsed.kind !== "pub") throw new Error("공개키 파일이 아닙니다");
+  return { parsed, raw };
+}
+
+async function loadPrivateKeyFile(file) {
+  const name = file.name.toLowerCase();
+  const raw = name.endsWith(".txt") ? extractAddress(await file.text()) : new Uint8Array(await file.arrayBuffer());
+  const parsed = parseKeyFile(raw);
+  if (parsed.keytype !== 0x42) throw new Error("암호화된 결합 개인키(VaultKey)가 아닙니다");
+  if (parsed.kind !== "priv-encrypted") throw new Error("암호화된 개인키가 아닙니다");
+  if (!parsed.combined) throw new Error("결합 개인키가 아닙니다");
+  setPrivateAddress(raw, true);
+  showToast("개인키가 로드되었습니다 (암호화/서명 시 비밀번호 입력 필요)");
+  $("settings-load-status").textContent = `✅ 개인키 로드 완료 (비밀번호는 암호화/서명 시 입력)`;
+  return { parsed, raw };
+}
+
+async function extractPublicKeyFromPrivateWithPassword() {
+  if (!globalPrivateAddressBytes) {
+    showToast("먼저 개인키를 로드하세요");
+    return;
+  }
+  try {
+    let memoText = "";
+    try {
+      const parsed = parseKeyFile(globalPrivateAddressBytes);
+      if (parsed.kind === "priv-encrypted" && parsed.vaultBytes) {
+        const p = parseVault(parsed.vaultBytes);
+        if (p.filename) memoText = p.filename;
+      }
+    } catch(e) {}
+    
+    const body = `공개키를 추출하기 위해 개인키를 복호화합니다.\n비밀번호를 입력하세요.${memoText ? `\n\n📝 메모: ${memoText}` : ""}`;
+    
+    const pw = await modalPassword(
+      "개인키 비밀번호",
+      body
+    );
+    if (pw === null) return;
+    const { pub, pubBytes } = await extractPublicFromPrivateKey(pw);
+    setPublic(pub, pubBytes);
+    showToast("✅ 공개키를 추출하여 적용했습니다");
+    $("settings-load-status").textContent = `✅ 개인키에서 공개키를 추출했습니다 · ${fpHex(await sha256Fingerprint(pub.enc))}`;
+  } catch (e) {
+    showToast("❌ 공개키 추출 실패: " + e.message);
+  }
+}
+
+function extractAddress(text) { const m = text.match(/#([A-Za-z0-9_-]+)/); if (!m) throw new Error("txt 파일에서 키 주소를 찾을 수 없습니다"); return addressToKeyBytes("#" + m[1]) }
+
+async function loadKeyFromHash() {
+  if (!location.hash) return;
+  try {
+    const raw = addressToKeyBytes(location.hash);
+    const parsed = parseKeyFile(raw);
+    if (parsed.kind === "priv-encrypted") {
+      if (globalPrivateAddressBytes && bytesEqual(globalPrivateAddressBytes, raw)) return;
+      setPrivateAddress(raw, parsed.combined);
+      $("settings-load-status").textContent = `✅ 암호화된 ${parsed.combined ? "결합" : "레거시"} 개인키를 로드했습니다`;
+    } else if (parsed.kind === "pub") {
+      setPublic({ enc: parsed.enc, sign: parsed.combined ? parsed.sign : null }, raw);
+      $("settings-load-status").textContent = `✅ 로드된 ${parsed.combined ? "결합 공개키" : "암호화 전용 공개키"} 사용 · ${fpHex(await sha256Fingerprint(parsed.enc))}`;
+    }
+    updateKeyStatusUI();
+  } catch (e) {
+    history.replaceState(null, "", location.pathname + location.search);
+    $("settings-panel").classList.remove("hidden");
+    showToast("❌ " + e.message);
+  }
+}
+
+function resetPanels() {
+  $("encrypt-panel").classList.add("hidden");
+  $("decrypt-panel").classList.add("hidden");
+  $("encrypt-password").value = "";
+  $("encrypt-password-confirm").value = "";
+  $("encrypt-password-confirm").classList.remove("error");
+  $("encrypt-password-confirm").classList.remove("error-shake");
+  $("encrypt-hint").value = "";
+  $("decrypt-password").value = "";
+  $("decrypt-signature-banner").className = "hidden";
+  $("decrypt-signature-banner").textContent = "";
+  $("status-decrypt").textContent = "";
+  $("encrypt-status").textContent = "";
+  $("decrypt-hint-box").classList.add("hidden");
+  $("decrypt-hint-box").innerHTML = "";
+  $("encrypt-execute-btn").disabled = false;
+  const dz = $("main-dropzone");
+  dz.classList.remove("has-file");
+  const content = $("dropzone-content");
+  content.innerHTML = `
+    <h2>파일을 여기에 놓으세요</h2>
+    <p>VLT1이면 자동으로 복호화 · 그 외 파일은 암호화</p>
+    <small>클릭하여 파일 선택</small>
+  `;
+}
+
+function unloadFile() {
+  if (mainFile) {
+    mainFile = null;
+    mainFileBytes = null;
+    decParsed = null;
+    $("main-file-chip").classList.add("hidden");
+    $("encrypt-panel").classList.add("hidden");
+    $("decrypt-panel").classList.add("hidden");
+    $("encrypt-status").textContent = "";
+    $("status-decrypt").textContent = "";
+    const dz = $("main-dropzone");
+    dz.classList.remove("has-file");
+    const content = $("dropzone-content");
+    content.innerHTML = `
+      <h2>파일을 여기에 놓으세요</h2>
+      <p>VLT1이면 자동으로 복호화 · 그 외 파일은 암호화</p>
+      <small>클릭하여 파일 선택</small>
+    `;
+    showToast("파일이 언로드되었습니다");
+  }
+}
+
+function setMainFile(file) {
+  if (mainFile) {
+    unloadFile();
+    return;
+  }
+  doSetMainFile(file);
+}
+
+function doSetMainFile(file) {
+  resetPanels();
+  mainFile = file;
+  $("main-file-name").textContent = file.name;
+  $("main-file-chip").classList.remove("hidden");
+  
+  const dz = $("main-dropzone");
+  dz.classList.add("has-file");
+  const content = $("dropzone-content");
+  content.innerHTML = `
+    <h2>📄 ${file.name}</h2>
+    <p style="font-size:14px">다시 클릭하면 파일이 언로드됩니다</p>
+    <small>${(file.size / 1024).toFixed(1)} KB</small>
+  `;
+  
+  file.text().then(async text => {
+    if (file.name.toLowerCase().endsWith(".txt") && text.trim().startsWith("#")) {
+      try {
+        const bytes = addressToKeyBytes(text.trim());
+        const isVKey = bytes.length >= 4 && utf8Decode(bytes.slice(0, 4)) === "VKEY";
+        const validKeyLengths = [1184, 2400, 3136, 8384, 6432];
+        const isKeyLength = validKeyLengths.includes(bytes.length);
+        let isKeyType = false;
+        if (bytes.length >= 6) {
+          const keytype = bytes[5];
+          isKeyType = [0x22, 0x23, 0x24, 0x40, 0x41, 0x42].includes(keytype);
+        }
+        if (isVKey || isKeyLength || isKeyType) {
+          showError("encrypt-status", "❌ 키 파일은 암호화 대상이 아닙니다");
+          $("main-file-chip").classList.add("hidden");
+          mainFile = null;
+          mainFileBytes = null;
+          $("encrypt-panel").classList.add("hidden");
+          $("decrypt-panel").classList.add("hidden");
+          dz.classList.remove("has-file");
+          content.innerHTML = `
+            <h2>파일을 여기에 놓으세요</h2>
+            <p>VLT1이면 자동으로 복호화 · 그 외 파일은 암호화</p>
+            <small>클릭하여 파일 선택</small>
+          `;
+          return;
+        }
+      } catch(e) {}
+    }
+    const ab = await file.arrayBuffer();
+    mainFileBytes = new Uint8Array(ab);
+    const isVault = mainFileBytes.length >= 4 && utf8Decode(mainFileBytes.slice(0, 4)) === "VLT1";
+    $("main-file-kind").textContent = isVault ? "복호화" : "암호화";
+    if (isVault) { 
+      try { 
+        decParsed = parseVault(mainFileBytes); 
+        showDecryptPanel();
+        if (decParsed.hint && decParsed.hint.trim()) {
+          const hintBox = $("decrypt-hint-box");
+          hintBox.classList.remove("hidden");
+          hintBox.innerHTML = renderHint(decParsed.hint);
+        }
+      } 
+      catch (e) { 
+        showError("status-decrypt", "손상된 파일: " + e.message);
+        $("decrypt-panel").classList.remove("hidden");
+      } 
+    } else showEncryptPanel();
+  }).catch(e => {
+    showError("encrypt-status", "파일을 읽을 수 없습니다");
+    unloadFile();
+  });
+}
+
+function showEncryptPanel() {
+  $("encrypt-panel").classList.remove("hidden");
+  $("decrypt-panel").classList.add("hidden");
+  updateEncryptUI();
+  nextPaint().then(() => $("encrypt-password").focus());
+}
+function showDecryptPanel() {
+  $("decrypt-panel").classList.remove("hidden");
+  $("encrypt-panel").classList.add("hidden");
+  if (decParsed) {
+    $("decrypt-password-wrap").classList.toggle("hidden", decParsed.mode !== 1);
+    $("decrypt-pqc-wrap").classList.toggle("hidden", decParsed.mode !== 2);
+    if (decParsed.hint && decParsed.hint.trim()) { 
+      $("decrypt-hint-box").classList.remove("hidden");
+      $("decrypt-hint-box").innerHTML = renderHint(decParsed.hint);
+    } else {
+      $("decrypt-hint-box").classList.add("hidden");
+      $("decrypt-hint-box").innerHTML = "";
+    }
+    $("decrypt-pqc-state").textContent = globalPrivateAddressBytes ? "개인키가 준비되어 있습니다." : "개인키를 로드하세요.";
+  }
+}
+function renderHint(h) { 
+  if (!h || !h.trim()) return "";
+  let parts = h.split("||").filter(p => p.trim());
+  let result = [];
+  for (let p of parts) {
+    const fpMatch = p.match(/^fingerprint:([a-f0-9]{16})/i);
+    if (fpMatch && $("fingerprint-toggle").checked) {
+      const fp = fpMatch[1];
+      const memo = p.replace(/^fingerprint:[a-f0-9]{16}/, "").trim();
+      result.push(`🔑 핑거프린트: ${fp}${memo ? ` (${memo})` : ""}`);
+    } else {
+      result.push(p.replace(/^fingerprint:[a-f0-9]{16}\s*/, "").trim());
+    }
+  }
+  return result.map((x, i) => `${i ? "<hr>" : ""}${escapeHtml(x).replace(/\\n/g, "<br>")}`).join("");
+}
+function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" } [c])) }
+
+function updateEncryptUI() {
+  $("password-encrypt-fields").classList.toggle("hidden", encryptMode !== "password");
+  $("encrypt-pqc-fields").classList.toggle("hidden", encryptMode !== "pqc");
+  $("encrypt-mode-password").classList.toggle("active", encryptMode === "password");
+  $("encrypt-mode-pqc").classList.toggle("active", encryptMode === "pqc");
+  
+  const pw = $("encrypt-password").value;
+  const pw2 = $("encrypt-password-confirm").value;
+  const confirmField = $("encrypt-password-confirm");
+  const encryptBtn = $("encrypt-execute-btn");
+  
+  if (pw2.length > 0 && pw !== pw2) {
+    confirmField.classList.add("error");
+    encryptBtn.disabled = true;
+  } else {
+    confirmField.classList.remove("error");
+    if (encryptMode === "password") {
+      encryptBtn.disabled = !(mainFile && pw.length > 0 && pw === pw2);
+    } else {
+      encryptBtn.disabled = !(mainFile && (globalCombinedPublicKey || globalPrivateAddressBytes));
+    }
+  }
+  
+  const showHint = encryptMode === "password" ? !!pw && pw === pw2 : !!(globalCombinedPublicKey || globalPrivateAddressBytes);
+  $("encrypt-hint-wrap").classList.toggle("hidden", !showHint);
+  if (encryptMode === "pqc") {
+    const status = encryptPqcLoaded ? "결합 공개키가 준비되었습니다." : 
+                   globalPrivateAddressBytes ? "개인키가 준비됨 (암호화 시 비밀번호 필요)" :
+                   "설정 패널의 공개키 또는 .txt/.VaultKey를 사용합니다.";
+    $("encrypt-pqc-dropzone").querySelector("p").textContent = status;
+  }
+}
+
+function shakePasswordConfirm() {
+  const confirmField = $("encrypt-password-confirm");
+  confirmField.classList.add("error");
+  confirmField.classList.remove("error-shake");
+  void confirmField.offsetWidth;
+  confirmField.classList.add("error-shake");
+  setTimeout(() => {
+    confirmField.classList.remove("error-shake");
+  }, 500);
+}
+
+function showError(id, msg) { $(id).textContent = msg;
+  $(id).classList.add("shake");
+  setTimeout(() => $(id).classList.remove("shake"), 500) }
+
+function modal(title, body, { input = false, confirm = "확인", cancel = "취소", memo = false } = {}) {
+  return new Promise(resolve => {
+    $("modal-title").textContent = title;
+    $("modal-body").innerHTML = body.replace(/\\n/g, "\n").replace(/\|{2}/g, "||");
+    
+    const pwInput = $("modal-input");
+    const memoInput = $("modal-memo-input");
+    
+    pwInput.classList.toggle("hidden", !input);
+    pwInput.value = "";
+    pwInput.placeholder = input ? "비밀번호 입력" : "";
+    
+    if (memo) {
+      memoInput.classList.remove("hidden");
+      memoInput.value = "";
+      memoInput.placeholder = "메모 입력 (선택 사항)";
+    } else {
+      memoInput.classList.add("hidden");
+      memoInput.value = "";
+    }
+    
+    $("modal-confirm-btn").textContent = confirm;
+    $("modal-cancel-btn").textContent = cancel;
+    $("modal-overlay").classList.remove("hidden");
+    
+    const done = v => { 
+      $("modal-overlay").classList.add("hidden");
+      pwInput.classList.add("hidden");
+      memoInput.classList.add("hidden");
+      resolve(v) 
+    };
+    const c = () => {
+      const val = input ? pwInput.value : true;
+      const memoVal = memo ? memoInput.value : "";
+      done({ value: val, memo: memoVal });
+    };
+    const x = () => done(false);
+    $("modal-confirm-btn").onclick = c;
+    $("modal-cancel-btn").onclick = x;
+    setTimeout(() => $(input ? "modal-input" : "modal-confirm-btn").focus(), 50);
+  });
+}
+
+async function modalPassword(title, body) { 
+  const v = await modal(title, body, { input: true }); 
+  if (v === false) return null; 
+  if (!v.value) throw new Error("비밀번호를 입력하세요."); 
+  return v.value; 
+}
+
+async function modalPasswordWithMemo(title, body) {
+  const v = await modal(title, body, { input: true, memo: true });
+  if (v === false) return null;
+  if (!v.value) throw new Error("비밀번호를 입력하세요.");
+  return { password: v.value, memo: v.memo };
+}
+
+function choosePrivateKeyFile() {
+  return new Promise(resolve => {
+    const input = $("signing-private-file-input");
+    input.value = "";
+    input.onchange = () => resolve(input.files?.[0] || null);
+    input.click();
+  });
+}
+async function confirmModal(title, body) { return !!(await modal(title, body)) }
+
+async function runEncrypt() {
+  if (encryptBusy) return;
+  if (!mainFile || !mainFileBytes) return showError("encrypt-status", "먼저 암호화할 파일을 선택하세요.");
+  
+  if (encryptMode === "password") {
+    const pw = $("encrypt-password").value;
+    const pw2 = $("encrypt-password-confirm").value;
+    if (!pw || pw !== pw2) {
+      shakePasswordConfirm();
+      showError("encrypt-status", "❌ 비밀번호가 일치하지 않습니다");
+      return;
+    }
+  }
+  
+  const includeSign = $("encrypt-sign-checkbox").checked;
+  
+  // PQC 모드: 공개키가 없으면 개인키에서 추출 시도
+  if (encryptMode === "pqc" && !globalCombinedPublicKey) {
+    if (globalPrivateAddressBytes) {
+      try {
+        const pw = await modalPassword(
+          "개인키 비밀번호",
+          `개인키에서 공개키를 추출합니다.\n비밀번호를 입력하세요.`
+        );
+        if (pw === null) return showError("encrypt-status", "취소됨");
+        const { pub, pubBytes } = await extractPublicFromPrivateKey(pw);
+        setPublic(pub, pubBytes);
+        encryptPqcRecipient = globalCombinedPublicKey;
+        encryptPqcLoaded = true;
+        showToast("개인키에서 공개키를 추출했습니다");
+      } catch (e) {
+        return showError("encrypt-status", "공개키 추출 실패: " + e.message);
+      }
+    } else {
+      const file = await choosePrivateKeyFile();
+      if (!file) return showError("encrypt-status", "키 선택이 취소되었습니다.");
+      try {
+        const result = await loadKeyFile(file);
+        if (result.type === 'private') {
+          try {
+            const pw = await modalPassword(
+              "개인키 비밀번호",
+              `개인키에서 공개키를 추출합니다.\n비밀번호를 입력하세요.`
+            );
+            if (pw === null) return showError("encrypt-status", "취소됨");
+            const { pub, pubBytes } = await extractPublicFromPrivateKey(pw);
+            setPublic(pub, pubBytes);
+            encryptPqcRecipient = globalCombinedPublicKey;
+            encryptPqcLoaded = true;
+            showToast("개인키에서 공개키를 추출했습니다");
+          } catch (e) {
+            return showError("encrypt-status", "공개키 추출 실패: " + e.message);
+          }
+        }
+        updateEncryptUI();
+      } catch (e) {
+        return showError("encrypt-status", "키 로드 실패: " + e.message);
+      }
+    }
+  }
+  
+  // 서명 포함이고 개인키가 없으면 개인키 로드
+  if (includeSign && !globalPrivateAddressBytes) {
+    const file = await choosePrivateKeyFile();
+    if (!file) return showError("encrypt-status", "개인키 선택이 취소되었습니다.");
+    try {
+      await loadPrivateKeyFile(file);
+    } catch (e) {
+      return showError("encrypt-status", "개인키 로드 실패: " + e.message);
+    }
+  }
+  
+  // 서명 포함이고 공개키가 없으면 개인키에서 추출 시도
+  if (includeSign && globalPrivateAddressBytes && !globalCombinedPublicKey) {
+    try {
+      const pw = await modalPassword(
+        "개인키 비밀번호",
+        `서명을 위해 개인키에서 공개키를 추출합니다.\n비밀번호를 입력하세요.`
+      );
+      if (pw === null) return showError("encrypt-status", "취소됨");
+      const { pub, pubBytes } = await extractPublicFromPrivateKey(pw);
+      setPublic(pub, pubBytes);
+      encryptPqcRecipient = globalCombinedPublicKey;
+      encryptPqcLoaded = true;
+      showToast("개인키에서 공개키를 추출했습니다");
+    } catch (e) {
+      return showError("encrypt-status", "공개키 추출 실패: " + e.message);
+    }
+  }
+  
+  encryptBusy = true;
+  $("encrypt-execute-btn").disabled = true;
+  $("encrypt-status").innerHTML = '암호화 중...<div class="progress"><i></i></div>';
+  try {
+    // 서명 포함일 때만 확인창 표시
+    if (includeSign) {
+      if (!await confirmModal(
+        "최종 확인",
+        "서명 + 암호화를 진행합니다."
+      )) { resetSignFlow(); return }
+    }
+
+    let signature = null, signerFp = null;
+    if (includeSign) {
+      if (!globalPrivateAddressBytes) {
+        const file = await choosePrivateKeyFile();
+        if (!file) throw new Error("서명용 개인키 선택이 취소되었습니다.");
+        await loadPrivateKeyFile(file);
+      }
+      if (!globalPrivateCanSign) throw new Error("이 개인키는 서명에 사용할 수 없습니다.");
+
+      let attempts = 0;
+      let privPlain = null;
+      let passwordToTry = pendingPrivatePassword;
+      while (attempts < 3) {
+        attempts++;
+        let pw;
+        if (passwordToTry && attempts === 1) {
+          pw = passwordToTry;
+          pendingPrivatePassword = null;
+        } else {
+          pw = await modalPassword(
+            "개인키 비밀번호",
+            attempts === 1 && passwordToTry ? "생성 시 사용한 비밀번호로 시도합니다.\n실패 시 직접 입력하세요." : "서명을 위해 개인키를 잠시 잠금 해제합니다.\n서명 직후 평문 개인키는 메모리에서 폐기됩니다."
+          );
+          if (pw === null) throw new Error("서명이 취소되었습니다.");
+        }
+        try {
+          privPlain = await unlockPrivateKeyForSigning(globalPrivateAddressBytes, pw);
+          if (!privPlain.sign || !privPlain.signPub)
+            throw new Error("이 개인키는 서명용 결합 개인키가 아닙니다.");
+          break;
+        } catch (e) {
+          if (attempts >= 3) throw new Error("개인키 비밀번호가 올바르지 않습니다.");
+          showToast("❌ " + e.message);
+        }
+      }
+      const digest = await sha256(mainFileBytes);
+      signature = ml_dsa65.sign(digest, privPlain.sign);
+      signerFp = await sha256Fingerprint(privPlain.signPub);
+      wipeBytes(privPlain.enc, privPlain.sign, privPlain.signPub);
+      privPlain = null;
+    }
+
+    let recipient = null;
+    if (encryptMode === "pqc") {
+      if (!globalCombinedPublicKey) throw new Error("수신자 공개키가 없습니다.");
+      recipient = encryptPqcRecipient || globalCombinedPublicKey;
+    }
+
+    let sigBlock = null;
+    if (includeSign && signature) {
+      sigBlock = { signature, signerFp };
+    }
+
+    let hint = $("encrypt-hint").value || "";
+    if ($("fingerprint-toggle").checked && signerFp) {
+      const fpStr = `fingerprint:${fpHex(signerFp)}`;
+      hint = hint ? `${hint}||${fpStr}` : fpStr;
+    }
+    
+    const mimetype = mainFile.type || "application/octet-stream";
+    
+    // 파일 암호화용 Argon2id 파라미터 사용
+	const fileMem = parseInt($("file-argon2-memory").value) || 512;
+	const fileIter = parseInt($("file-argon2-iterations").value) || 6;
+	const filePar = parseInt($("file-argon2-parallelism").value) || 4;
+    
+	const out = encryptMode === "password"
+	  ? await buildVaultPassword(mainFileBytes, mainFile.name.replace(/[\\/]/g, ""), mimetype, $("encrypt-password").value,
+		fileMem, fileIter, filePar, hint, sigBlock)
+	  : await buildVaultPqc(mainFileBytes, mainFile.name.replace(/[\\/]/g, ""), mimetype, recipient.enc, hint, sigBlock);
+    downloadBytes(out, mainFile.name + ".Vault", "application/octet-stream");
+    $("encrypt-status").textContent = "암호화 완료 — 파일을 저장했습니다.";
+    resetSignFlow(false);
+    
+    setTimeout(() => {
+      unloadFile();
+      showToast("암호화 완료 - 파일이 언로드되었습니다");
+    }, 500);
+  } catch (e) {
+    showError("encrypt-status", "암호화 실패: " + e.message)
+  } finally {
+    encryptBusy = false;
+    $("encrypt-execute-btn").disabled = false;
+  }
+}
+function resetSignFlow(full = true) { $("encrypt-sign-checkbox").checked = false; if (full) $("encrypt-status").textContent = "" }
+
+async function runDecrypt() {
+  if (decryptBusy) return;
+  if (!mainFile || !decParsed) return showError("status-decrypt", "먼저 .Vault 파일을 선택하세요.");
+  decryptBusy = true;
+  $("decrypt-execute-btn").disabled = true;
+  $("status-decrypt").innerHTML = '복호화 중...<div class="progress"><i></i></div>';
+  try {
+    let privateKey = null;
+    if (decParsed.mode === 2) {
+      if (!globalPrivateAddressBytes) throw new Error("개인키가 없습니다.");
+      let pw;
+      if (pendingPrivatePassword) {
+        pw = pendingPrivatePassword;
+        pendingPrivatePassword = null;
+      } else {
+        pw = await modalPassword("개인키 비밀번호", "PQC 복호화를 위해 개인키를 잠금 해제합니다.");
+        if (pw === null) throw new Error("취소됨");
+      }
+      const priv = await unlockPrivateKeyForSigning(globalPrivateAddressBytes, pw);
+      if (!priv.enc) throw new Error("개인키 복호화 실패");
+      privateKey = priv;
+    }
+
+    const ctx = decParsed.mode === 1 ? { password: $("decrypt-password").value } : { privateKey };
+    if (decParsed.mode === 1 && !ctx.password) throw new Error("비밀번호를 입력하세요.");
+
+    const { plaintext, verifyResult } = await doDecryptWithVerify(decParsed, ctx);
+
+    if (privateKey) {
+      wipeBytes(privateKey.enc, privateKey.sign || new Uint8Array(0), privateKey.signPub || new Uint8Array(0));
+      privateKey = null;
+    }
+
+    downloadBytes(plaintext, decParsed.filename || mainFile.name.replace(/\.Vault$/i, ""), decParsed.mimetype || "application/octet-stream");
+    $("status-decrypt").textContent = "복호화 성공 — 파일을 저장했습니다.";
+    const b = $("decrypt-signature-banner");
+    if (!verifyResult.present) { b.className = "hidden"; b.textContent = ""; }
+    else if (verifyResult.status === "no-key") { b.className = "banner warn";
+      b.textContent = "이 파일은 서명되어 있지만 검증할 발신자 공개키가 없습니다" } else if (verifyResult.status === "valid") { b.className = "banner success";
+      b.textContent = "✓ 서명 확인됨 · 발신자 지문: " + fpHex(verifyResult.signerFp) } else { b.className = "banner danger";
+      b.textContent = "⚠️ 서명 검증에 실패했습니다 — 파일이 변조되었거나 다른 키로 서명되었습니다" }
+  } catch (e) {
+    showError("status-decrypt", "복호화 실패: 비밀번호/키가 올바르지 않거나 파일이 손상되었습니다. (" + e.message + ")")
+  } finally { decryptBusy = false;
+    $("decrypt-execute-btn").disabled = false }
+}
+
+function bindDrop(el, callback) {
+  ["dragenter", "dragover"].forEach(ev => el.addEventListener(ev, e => { e.preventDefault();
+    el.classList.add("drag") }));
+  ["dragleave", "drop"].forEach(ev => el.addEventListener(ev, e => { e.preventDefault();
+    el.classList.remove("drag") }));
+  el.addEventListener("drop", e => { const f = e.dataTransfer.files?.[0]; if (f) callback(f) });
+}
+
+async function loadKeyFile(file) {
+  const name = file.name.toLowerCase();
+  const raw = name.endsWith(".txt") ? extractAddress(await file.text()) : new Uint8Array(await file.arrayBuffer());
+  const parsed = parseKeyFile(raw);
+  
+  if (parsed.keytype === 0x42) {
+    await loadPrivateKeyFile(file);
+    return { type: 'private', parsed };
+  } else if ([0x40, 0x22].includes(parsed.keytype)) {
+    const result = await loadPublicKeyOnly(file);
+    setPublic({ enc: result.parsed.enc, sign: result.parsed.combined ? result.parsed.sign : null }, result.raw);
+    encryptPqcLoaded = true;
+    encryptPqcRecipient = globalCombinedPublicKey;
+    showToast("공개키를 로드했습니다");
+    return { type: 'public', parsed };
+  } else {
+    throw new Error("지원하지 않는 키 파일입니다");
+  }
+}
+
+$("main-dropzone").onclick = function(e) {
+  if (e.target.tagName === "INPUT") return;
+  if (mainFile) {
+    unloadFile();
+  } else {
+    $("main-file-input").click();
+  }
+};
+$("main-file-input").onchange = e => {
+  if (e.target.files[0]) {
+    doSetMainFile(e.target.files[0]);
+  }
+  e.target.value = "";
+};
+bindDrop($("main-dropzone"), function(f) {
+  if (mainFile) {
+    unloadFile();
+    setTimeout(() => doSetMainFile(f), 100);
+  } else {
+    doSetMainFile(f);
+  }
+});
+
+$("settings-toggle").onclick = () => $("settings-panel").classList.remove("hidden");
+$("settings-close").onclick = () => $("settings-panel").classList.add("hidden");
+$("settings-panel").onclick = e => { if (e.target === $("settings-panel")) $("settings-panel").classList.add("hidden") };
+$("settings-dropzone").onclick = () => $("settings-file-input").click();
+bindDrop($("settings-dropzone"), async f => { 
+  try {
+    await loadKeyFile(f);
+  } catch (e) { showToast("❌ " + e.message) } 
+});
+$("settings-file-input").onchange = async e => { const f = e.target.files[0]; if (!f) return; 
+  try {
+    await loadKeyFile(f);
+  } catch (x) { showToast("❌ " + x.message) }
+  e.target.value = "" };
+
+$("encrypt-mode-password").onclick = () => { encryptMode = "password";
+  encryptPqcRecipient = null;
+  encryptPqcLoaded = false;
+  updateEncryptUI() };
+$("encrypt-mode-pqc").onclick = () => { encryptMode = "pqc";
+  encryptPqcRecipient = globalCombinedPublicKey;
+  encryptPqcLoaded = !!globalCombinedPublicKey;
+  updateEncryptUI() };
+$("encrypt-password").oninput = updateEncryptUI;
+$("encrypt-password-confirm").oninput = updateEncryptUI;
+$("hint-help").onclick = () => modal("힌트 사용법", "\\n은 줄바꿈으로 표시됩니다.\n|| 는 구분선으로 표시됩니다.\n\n핑거프린트 힌트 포함 활성화 시:\n||fingerprint:{핑거프린트}||{메모}\n형식으로 자동 추가됩니다.");
+
+$("encrypt-pqc-dropzone").onclick = () => $("encrypt-pqc-file-input").click();
+bindDrop($("encrypt-pqc-dropzone"), async f => { 
+  try {
+    const result = await loadKeyFile(f);
+    if (result.type === 'private') {
+      showToast("개인키가 로드되었습니다 (암호화 시 비밀번호 입력)");
+    }
+    updateEncryptUI();
+  } catch (e) { 
+    showToast("❌ " + e.message);
+    encryptPqcLoaded = false;
+    encryptPqcRecipient = null;
+  } 
+});
+$("encrypt-pqc-file-input").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const result = await loadKeyFile(f);
+    if (result.type === 'private') {
+      showToast("개인키가 로드되었습니다 (암호화 시 비밀번호 입력)");
+    }
+    updateEncryptUI();
+  } catch (x) { 
+    showToast("❌ " + x.message);
+    encryptPqcLoaded = false;
+    encryptPqcRecipient = null;
+  }
+  e.target.value = "";
+};
+$("encrypt-execute-btn").onclick = runEncrypt;
+
+$("decrypt-pqc-dropzone").onclick = () => $("decrypt-pqc-file-input").click();
+bindDrop($("decrypt-pqc-dropzone"), async f => { 
+  try {
+    const name = f.name.toLowerCase();
+    const raw = name.endsWith(".txt") ? extractAddress(await f.text()) : new Uint8Array(await f.arrayBuffer());
+    const parsed = parseKeyFile(raw);
+    if (![0x41, 0x42, 0x23, 0x24].includes(parsed.keytype)) {
+      throw new Error("개인키 파일이 아닙니다");
+    }
+    if (parsed.kind === "priv-plain") {
+      await loadKeyFileIntoGlobalState(f);
+    } else if (parsed.kind === "priv-encrypted") {
+      setPrivateAddress(raw, parsed.combined);
+      showToast("개인키가 로드되었습니다 (복호화 시 비밀번호 입력)");
+    }
+    $("decrypt-pqc-state").textContent = "개인키가 준비되었습니다.";
+    updateKeyStatusUI();
+  } catch (e) { showToast("❌ " + e.message) } 
+});
+$("decrypt-pqc-file-input").onchange = async e => { 
+  const f = e.target.files[0]; if (!f) return; 
+  try {
+    const name = f.name.toLowerCase();
+    const raw = name.endsWith(".txt") ? extractAddress(await f.text()) : new Uint8Array(await f.arrayBuffer());
+    const parsed = parseKeyFile(raw);
+    if (![0x41, 0x42, 0x23, 0x24].includes(parsed.keytype)) {
+      throw new Error("개인키 파일이 아닙니다");
+    }
+    if (parsed.kind === "priv-plain") {
+      await loadKeyFileIntoGlobalState(f);
+    } else if (parsed.kind === "priv-encrypted") {
+      setPrivateAddress(raw, parsed.combined);
+      showToast("개인키가 로드되었습니다 (복호화 시 비밀번호 입력)");
+    }
+    $("decrypt-pqc-state").textContent = "개인키가 준비되었습니다.";
+    updateKeyStatusUI();
+  } catch (x) { showToast("❌ " + x.message) }
+  e.target.value = "" 
+};
+$("decrypt-execute-btn").onclick = runDecrypt;
+
+$("generate-key-btn").onclick = async () => {
+  try {
+    if (globalPrivateAddressBytes) {
+      if (!await confirmModal("키 쌍 재생성", "기존 결합 개인키 주소를 먼저 저장해두세요. 계속하면 기존 키는 교체됩니다.")) return;
+    } else if (globalCombinedPublicKey && !globalPrivateAddressBytes) {
+      if (!await confirmModal("복구 불가", "현재 공개키만 있습니다. 새 키를 생성하면 기존 공개키는 복구할 수 없습니다. 계속하시겠습니까?")) return;
+    }
+    
+    const result = await modalPasswordWithMemo(
+      "키 쌍 생성",
+      "새 결합 키를 보호할 비밀번호를 입력하세요."
+    );
+    if (result === null) return;
+    
+    const pw = result.password;
+    const memo = result.memo || "";
+    pendingPrivatePassword = pw;
+    
+    // 개인키 보호용 Argon2id 파라미터 사용
+    const params = {
+      memorySize: parseInt($("key-argon2-memory").value) || 1024,
+      iterations: parseInt($("key-argon2-iterations").value) || 6,
+      parallelism: parseInt($("key-argon2-parallelism").value) || 8
+    };
+    if (params.memorySize < 8 || params.iterations < 1 || params.iterations > 20 || params.parallelism < 1 || params.parallelism > 8) throw new Error("Argon2 파라미터가 올바르지 않습니다");
+    $("public-address").textContent = "";
+    $("private-address").textContent = "";
+    await nextPaint();
+    const r = await generateCombinedKeyPair(pw, memo, params);
+    const pubParsed = parseKeyFile(r.pubAddressBytes);
+    globalCombinedPublicKey = { enc: pubParsed.enc, sign: pubParsed.sign };
+    globalPublicAddressBytes = r.pubAddressBytes;
+    setPrivateAddress(r.privAddressBytes, true);
+    $("public-address").textContent = keyBytesToAddress(r.pubAddressBytes);
+    $("private-address").textContent = keyBytesToAddress(r.privAddressBytes);
+    $("settings-load-status").textContent = "새 결합 키 쌍이 생성되었습니다.";
+    updateKeyStatusUI();
+    showToast("키 쌍 생성 완료");
+  } catch (e) { showToast("❌ " + e.message);
+    updateKeyStatusUI() }
+};
+async function generateCombinedKeyPair(password, memo, argon2Params) {
+  const enc = ml_kem768.keygen();
+  const sign = ml_dsa65.keygen();
+  const innerPlain = concatBytes(enc.secretKey, sign.secretKey, sign.publicKey);
+  const privVault = await buildVaultPassword(innerPlain, memo || "", "application/octet-stream", password,
+    argon2Params.memorySize, argon2Params.iterations, argon2Params.parallelism, "");
+  return {
+    pubAddressBytes: buildKeyFile(0x40, concatBytes(enc.publicKey, sign.publicKey)),
+    privAddressBytes: buildKeyFile(0x42, privVault)
+  };
+}
+
+async function addressAction(which, applyHash = true) {
+  const bytes = which === "pub" ? globalPublicAddressBytes : globalPrivateAddressBytes;
+  if (!bytes) return;
+  const addr = keyBytesToAddress(bytes);
+  if (applyHash) { location.hash = addr.slice(1);
+    showToast("주소를 적용했습니다") } else { await navigator.clipboard.writeText(addr);
+    showToast("주소를 복사했습니다") }
+}
+
+// 공유 함수
+async function shareAddress(which) {
+  const bytes = which === "pub" ? globalPublicAddressBytes : globalPrivateAddressBytes;
+  if (!bytes) {
+    showToast(which === "pub" ? "공개키가 없습니다" : "개인키가 없습니다");
+    return;
+  }
+  const addr = keyBytesToAddress(bytes);
+  const isPrivate = which === "priv";
+  
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: isPrivate ? 'Vault 개인키 백업' : 'Vault 공개키',
+        text: isPrivate 
+          ? '⚠️ Vault 개인키 백업입니다.\n절대 타인과 공유하지 마세요!\n안전한 곳에 보관하세요.'
+          : 'Vault 공개키입니다.\n안전하게 보관하세요.',
+        url: addr
+      });
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('공유 실패:', err);
+      }
+    }
+  } else {
+    await navigator.clipboard.writeText(addr);
+    showToast(isPrivate ? "개인키 주소가 복사되었습니다 (주의: 백업용)" : "주소가 복사되었습니다");
+  }
+}
+
+$("apply-public").onclick = () => addressAction("pub", true);
+$("apply-private").onclick = () => addressAction("priv", true);
+$("copy-public").onclick = () => addressAction("pub", false);
+$("copy-private").onclick = () => addressAction("priv", false);
+$("save-public").onclick = () => globalPublicAddressBytes && downloadBytes(utf8Encode(keyBytesToAddress(globalPublicAddressBytes)), "VaultPublicKey.txt", "text/plain");
+$("save-private").onclick = () => globalPrivateAddressBytes && downloadBytes(utf8Encode(keyBytesToAddress(globalPrivateAddressBytes)), "VaultPrivateKey.txt", "text/plain");
+$("share-public").onclick = () => shareAddress("pub");
+$("share-private").onclick = () => shareAddress("priv");
+
+$("extract-public").onclick = extractPublicKeyFromPrivateWithPassword;
+
+$("unload-keys").onclick = async () => { if (await confirmModal("키 언로드", "메모리와 주소 해시에서 모든 키를 제거합니다.")) { clearAllKeys();
+    history.replaceState(null, "", location.pathname + location.search);
+    showToast("키를 언로드했습니다") } };
+$("remove-private-password").onclick = async () => {
+  showToast("보안 정책상 개인키는 항상 암호문 형태로 보관됩니다.");
+};
+
+async function loadKeyFileIntoGlobalState(file, allowedKeytypes = null, mismatchMessage = "") {
+  const name = file.name.toLowerCase(); let raw;
+  if (name.endsWith(".txt")) raw = extractAddress(await file.text()); else raw = new Uint8Array(await file.arrayBuffer());
+  const parsed = parseKeyFile(raw);
+  if (allowedKeytypes && !allowedKeytypes.includes(parsed.keytype)) throw new Error(mismatchMessage || "허용되지 않는 키 종류입니다");
+  if (parsed.kind === "pub") {
+    setPublic({ enc: parsed.enc, sign: parsed.combined ? parsed.sign : null }, raw);
+    $("settings-load-status").textContent = `✅ 로드된 ${parsed.combined ? "결합 공개키" : "암호화 전용 공개키"} 사용 · ${fpHex(await sha256Fingerprint(parsed.enc))}`;
+    return;
+  }
+  if (parsed.kind === "priv-plain") {
+    const isCombined = parsed.combined;
+    if (isCombined && (!parsed.sign || !parsed.signPub))
+      throw new Error("결합 개인키에 서명 키 정보가 없습니다.");
+    const pw = await modalPassword(
+      "개인키 보호",
+      "평문 개인키가 로드되었습니다.\n계속 사용하기 전에 개인키 비밀번호를 설정합니다."
+    );
+    if (pw === null) throw new Error("개인키 보호가 취소되었습니다.");
+    const plain = concatBytes(
+      parsed.enc,
+      isCombined ? parsed.sign : new Uint8Array(0),
+      isCombined ? parsed.signPub : new Uint8Array(0)
+    );
+    // 개인키 보호용 Argon2id 파라미터 사용
+    const keyMem = parseInt($("key-argon2-memory").value) || 1024;
+    const keyIter = parseInt($("key-argon2-iterations").value) || 6;
+    const keyPar = parseInt($("key-argon2-parallelism").value) || 8;
+    const encryptedVault = await buildVaultPassword(
+      plain,
+      "VaultKey",
+      "application/octet-stream",
+      pw,
+      keyMem, keyIter, keyPar
+    );
+    const encryptedAddress = buildKeyFile(isCombined ? 0x42 : 0x24, encryptedVault);
+    wipeBytes(plain, parsed.enc, parsed.sign || new Uint8Array(0), parsed.signPub || new Uint8Array(0), encryptedVault);
+    const pubEnc = parsed.enc.slice(1152, 1152 + CONSTANTS.KEM_PUB);
+    if (isCombined && parsed.signPub) {
+      globalCombinedPublicKey = { enc: pubEnc, sign: parsed.signPub };
+      globalPublicAddressBytes = buildKeyFile(0x40, concatBytes(pubEnc, parsed.signPub));
+    } else {
+      globalCombinedPublicKey = { enc: pubEnc, sign: null };
+      globalPublicAddressBytes = buildKeyFile(0x22, pubEnc);
+    }
+    setPrivateAddress(encryptedAddress, isCombined);
+    pendingPrivatePassword = pw;
+    $("settings-load-status").textContent = `✅ 평문 개인키를 암호화하여 보관했습니다 · ${isCombined ? "결합" : "레거시"} 개인키`;
+    return;
+  }
+  if (parsed.kind === "priv-encrypted") {
+    const combined = parsed.combined;
+    setPrivateAddress(raw, combined);
+    $("settings-load-status").textContent = `✅ 암호화된 ${combined ? "결합" : "레거시"} 개인키를 로드했습니다`;
+    return;
+  }
+}
+
+window.addEventListener("hashchange", loadKeyFromHash);
+loadKeyFromHash().finally(updateKeyStatusUI);
+</script>
+</body>
+</html>

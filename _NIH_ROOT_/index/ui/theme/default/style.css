@@ -1,0 +1,488 @@
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  /* 이 가짜 OS가 진짜 웹페이지라는 티가 나는 대표적인 방법이 "드래그로 화면 텍스트/UI를
+     긁어 선택"하는 것이다(사용자 지시 - 참조 코드처럼 우클릭/드래그 우회까지 막기). 페이지
+     전체를 선택 불가로 걸어두고, 실제로 타이핑/편집해야 하는 입력창(검색창, 이름변경 대화상자
+     입력란 등)에서만 다시 풀어준다. */
+  body { user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; }
+  input, textarea { user-select: text; -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; cursor: text; }
+  body {
+    font-family: "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
+    background:
+      radial-gradient(1200px 800px at 15% 10%, #6db3f2 0%, transparent 55%),
+      radial-gradient(1400px 900px at 85% 90%, #1b4f9c 0%, transparent 60%),
+      linear-gradient(160deg, #2f7cd6 0%, #0e3a73 100%);
+    min-height: 100%;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><polygon points="3,2 3,26 9,20.5 13.5,28.5 17.5,26.3 13.2,18.5 21,18.5" fill="black" stroke="black" stroke-width="1.5" stroke-linejoin="round"/><polygon points="5,6 5,21 9.2,17 13.5,24.7 15.3,23.7 11.2,16.2 17,16.2" fill="white"/></svg>') 3 2, auto;
+    --cur-link: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="28" viewBox="0 0 24 28"><g fill="black" stroke="black" stroke-width="1.2" stroke-linejoin="round"><rect x="9" y="1" width="5" height="13" rx="2.3"/><rect x="2" y="12" width="6" height="10" rx="2.6"/><rect x="4" y="9" width="17" height="15" rx="4"/></g><g fill="white"><rect x="10" y="2.4" width="3" height="10" rx="1.3"/><rect x="3.2" y="13" width="4" height="7.5" rx="1.6"/><rect x="5.3" y="10.3" width="14.5" height="12" rx="3"/></g></svg>') 11 2, pointer;
+  }
+
+  .desktop {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 24px 72px;
+  }
+
+  /* ---------- 창(window) ---------- */
+  .window {
+    position: relative; /* 아래 리사이즈 손잡이들의 절대좌표 기준 */
+    width: 960px;
+    max-width: 100%;
+    height: 640px;
+    max-height: 85vh;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 25px 70px rgba(0,0,0,.4);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: width .15s ease, height .15s ease, border-radius .15s ease;
+  }
+  /* 리사이즈 도중엔 위 transition이 매 프레임 지연을 만들어 손을 따라오지 못하는 느낌을 주므로 끈다. */
+  .window.resizing { transition: none; }
+  /* 한 번이라도 드래그로 옮기거나(.positioned) 크기를 바꾸면, 원래 있던 max-width/max-height(뷰포트
+     기준 상한)에 더는 눌리지 않게 해서 사용자가 원하는 크기로 자유롭게(화면 크기까지) 키울 수 있다. */
+  .window.positioned { max-width: none; max-height: none; }
+  /* ---------- 창 크기 조절 손잡이 (실제 윈도우처럼 가장자리/모서리를 끌어서 리사이즈) ---------- */
+  .rz { position: absolute; z-index: 20; }
+  .rz-n, .rz-s { left: 6px; right: 6px; height: 6px; cursor: ns-resize; }
+  .rz-n { top: -3px; } .rz-s { bottom: -3px; }
+  .rz-e, .rz-w { top: 6px; bottom: 6px; width: 6px; cursor: ew-resize; }
+  .rz-e { right: -3px; } .rz-w { left: -3px; }
+  .rz-ne, .rz-nw, .rz-se, .rz-sw { width: 12px; height: 12px; }
+  .rz-ne { top: -3px; right: -3px; cursor: nesw-resize; }
+  .rz-nw { top: -3px; left: -3px; cursor: nwse-resize; }
+  .rz-se { bottom: -3px; right: -3px; cursor: nwse-resize; }
+  .rz-sw { bottom: -3px; left: -3px; cursor: nesw-resize; }
+  .window.maximized .rz { display: none; } /* 최대화 상태에서는 손잡이로 크기를 바꿀 수 없다 */
+  /* 최대화: desktop의 padding/flex-centering 계산에 얹히면(=일반 flex 항목으로 남아있으면) 위아래좌우로
+     여백이 생기고 심지어 뷰포트를 넘쳐서 스크롤바까지 생긴다(브라우저 티가 남). 대신 position:fixed로
+     아예 desktop 레이아웃에서 빠져나와 뷰포트 기준 top/left/right/bottom(작업표시줄 높이만 제외)으로
+     정확히 채운다 - 패딩/센터링 계산과 완전히 무관해져서 갭도 스크롤바도 생기지 않는다. */
+  .window.maximized {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 48px;
+    width: auto; height: auto;
+    margin: 0;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+  }
+  /* 최대화가 아닌 상태에서 타이틀바를 드래그하면 처음 한 번 이 클래스가 붙으면서 현재 화면 위치를
+     고정 좌표(top/left)로 못박고, 그 뒤로는 그 좌표를 옮기며 이동한다(실제 창처럼). */
+  .window.positioned { position: fixed; margin: 0; }
+  /* 최소화 = 닫기와 동일하게 창 자체가 사라짐. 다만 작업표시줄 아이콘은 (닫기와 달리) 활성 표시가 유지된다
+     (JS의 taskbarApp active 클래스 처리 참고) - 실제 윈도우도 최소화하면 표시줄 아이콘이 안 꺼진다. */
+  .window.minimized { display: none; }
+  .window.closed { display: none; }
+
+  .titlebar {
+    flex: 0 0 40px;
+    background: #fff;
+    border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    user-select: none;
+  }
+  .tb-icon { font-size: 15px; margin-right: 8px; }
+  .tb-title { font-size: 13px; color: #333; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tb-controls { display: flex; height: 100%; }
+  .tb-btn { width: 46px; height: 100%; border: none; background: transparent; font-size: 12px; color: #333; cursor: var(--cur-link); }
+  .tb-btn:hover { background: #e9e9e9; }
+  .tb-close:hover { background: #e81123; color: #fff; }
+
+  /* ---------- 도구모음 / 주소표시줄 ---------- */
+  .toolbar {
+    flex: 0 0 44px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    background: #f6f6f6;
+    border-bottom: 1px solid #e1e1e1;
+  }
+  .tool-btn {
+    width: 30px; height: 30px;
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: 4px;
+    cursor: var(--cur-link);
+    font-size: 14px;
+    color: #444;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tool-btn:hover:not(:disabled) { background: #e9e9e9; border-color: #d5d5d5; }
+  .tool-btn:disabled { color: #c4c4c4; cursor: inherit; }
+  .nav-toggle { display: flex; }
+  .address-bar {
+    flex: 1; height: 30px;
+    background: #fff; border: 1px solid #d5d5d5; border-radius: 4px;
+    display: flex; align-items: center; padding: 0 8px; gap: 3px;
+    font-size: 12.5px; color: #333;
+    overflow-x: auto; white-space: nowrap;
+  }
+  .address-bar::-webkit-scrollbar { display: none; }
+  .crumb { cursor: var(--cur-link); padding: 2px 5px; border-radius: 3px; }
+  .crumb:hover { background: #e9e9e9; }
+  .crumb-sep { color: #9a9a9a; }
+  .search-box { width: 180px; height: 30px; flex: 0 0 auto; }
+  .search-box input {
+    width: 100%; height: 100%; box-sizing: border-box;
+    border: 1px solid #d5d5d5; border-radius: 4px; padding: 0 10px;
+    font-size: 12.5px; outline: none;
+  }
+  .search-box input:focus { border-color: #0078d4; }
+
+  /* ---------- 본문 (탐색창 + 내용창) ---------- */
+  .body-area { flex: 1; display: flex; min-height: 0; position: relative; }
+
+  .nav-pane {
+    width: 220px; flex: 0 0 220px;
+    background: #f6f6f6;
+    border-right: 1px solid #e1e1e1;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding: 6px 0;
+    font-size: 13px;
+    user-select: none; /* 드래그로 텍스트가 선택되는 걸 막음 (키보드 포커스 이동을 위한 클릭과 충돌 방지) */
+    outline: none;
+  }
+  /* 탐색창(트리)은 기본적으로 꺼진 채로 시작한다 - 주소창(#...) 링크로 들어왔을 때만 켜진 채로
+     시작한다(아래 main()의 hadHashOnLoad 참고). 화면 폭에 상관없이 이 규칙이 적용되며, 좁은
+     화면에서는 아래 미디어쿼리가 열렸을 때의 표시 방식(오버레이+슬라이드)만 추가로 바꾼다. */
+  .nav-pane:not(.open) { display: none; }
+  .nav-root {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 10px; margin: 0 4px 2px;
+    cursor: var(--cur-link); font-weight: 600; color: #333;
+    border-radius: 4px; border: 1px solid transparent;
+    width: fit-content; max-width: none;
+  }
+  .nav-root:hover { background: #ececec; }
+  .nav-root.selected { background: #cce8ff; border-color: #99d1ff; }
+  /* 방향키로 옮겨다니는 중인 "포커스" 표시 - 점선 테두리. 파란 선택 박스와는 별개로, 엔터를
+     눌러야 비로소 파란 선택이 그 자리로 확정된다(실제 윈도우 탐색기와 동일한 방식). */
+  .nav-root.kbd-focus, .tree-row.kbd-focus { outline: 1px dotted #555; outline-offset: -1px; }
+  /* width: fit-content - 파란 선택 배경이 텍스트 폭에 딱 맞게 붙는다(오른쪽으로 쓸데없이 안 늘어남).
+     동시에 트리 창이 가로로 스크롤될 때(깊은 폴더/긴 이름) 실제 내용 폭만큼만 박스가 생기므로,
+     스크롤해서 오른쪽으로 가도 파란 배경이 중간에 잘리지 않고 글자 끝까지 정확히 따라온다. */
+  .tree-row {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 6px; margin: 0 4px;
+    cursor: var(--cur-link); border-radius: 4px; color: #333;
+    white-space: nowrap; border: 1px solid transparent;
+    width: fit-content; max-width: none;
+  }
+  .tree-row:hover { background: #ececec; }
+  .tree-row.selected { background: #cce8ff; border-color: #99d1ff; }
+  .tree-row.tree-loading { color: #999; font-style: italic; cursor: inherit; }
+  .tree-row.tree-loading:hover { background: transparent; }
+  .tree-arrow { width: 14px; flex: 0 0 14px; text-align: center; color: #666; font-size: 10px; }
+  .tree-arrow.empty { visibility: hidden; }
+
+  .content-pane { flex: 1; overflow-y: auto; padding: 14px; background: #fff; position: relative; outline: none; user-select: none; }
+  .search-heading { font-size: 12.5px; color: #666; margin-bottom: 10px; }
+  .select-box {
+    position: absolute; border: 1px solid #0078d4; background: rgba(0,120,212,.15);
+    pointer-events: none; z-index: 5;
+  }
+  .grid { display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; }
+  .grid-item {
+    width: 96px; padding: 8px 4px; text-align: center;
+    border-radius: 4px; cursor: var(--cur-link); border: 1px solid transparent;
+  }
+  .grid-item.flat { width: 132px; }
+  .grid-item:hover { background: #f0f6fc; border-color: #e1e1e1; }
+  .grid-item.selected { background: #cce8ff; border-color: #99d1ff; }
+  .grid-item .icon { margin: 0 auto 6px; display: flex; justify-content: center; }
+  .grid-item .label { font-size: 12px; color: #222; word-break: break-word; line-height: 1.3; }
+  .grid-item .sub { font-size: 10.5px; color: #8a8a8a; margin-top: 3px; word-break: break-all; line-height: 1.25; }
+  .empty-msg, .status-msg { color: #888; font-size: 13px; padding: 18px 4px; }
+
+  .status-bar {
+    flex: 0 0 26px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 10px; background: #f0f0f0; border-top: 1px solid #e1e1e1;
+    font-size: 12px; color: #555;
+  }
+  .status-bar a { color: #666; text-decoration: none; }
+  .status-bar a:hover { text-decoration: underline; }
+
+  /* ---------- 작업 표시줄 / 시작 메뉴 / 트레이 ---------- */
+  .taskbar {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 48px;
+    display: flex; align-items: center; justify-content: flex-start; gap: 8px;
+    padding-left: 8px;
+    background: rgba(250,250,250,.8); backdrop-filter: blur(18px);
+    border-top: 1px solid rgba(255,255,255,.5);
+    z-index: 10;
+  }
+  .start-btn, .taskbar-app {
+    height: 38px; padding: 0 12px;
+    display: flex; align-items: center; gap: 6px;
+    border-radius: 6px; cursor: var(--cur-link); font-size: 13px; color: #222;
+  }
+  .start-btn { width: 38px; justify-content: center; padding: 0; font-size: 18px; color: #0078d4; }
+  .start-btn:hover, .taskbar-app:hover { background: rgba(0,0,0,.07); }
+  .taskbar-app.active { background: rgba(0,0,0,.09); border-bottom: 2px solid #0078d4; }
+  .tray-right { position: absolute; right: 14px; display: flex; align-items: center; gap: 10px; }
+  .clock { font-size: 12px; color: #222; text-align: center; line-height: 1.3; user-select: none; white-space: nowrap; }
+  .battery {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 6px; border-radius: 4px; cursor: inherit;
+    font-size: 12.5px; color: #333;
+  }
+  .battery:hover { background: rgba(0,0,0,.07); }
+  .battery .bicon { font-size: 15px; line-height: 1; }
+  .weather {
+    display: flex; align-items: center; gap: 5px; cursor: var(--cur-link);
+    font-size: 12px; color: #222; padding: 5px 8px; border-radius: 6px; user-select: none;
+  }
+  .weather:hover { background: rgba(0,0,0,.07); }
+  .weather .wicon { font-size: 16px; line-height: 1; }
+  .weather-big { display: flex; align-items: center; gap: 14px; }
+  .weather-big .wicon-big { font-size: 44px; line-height: 1; }
+  .weather-big .temp-big { font-size: 28px; font-weight: 600; color: #222; }
+  .weather-place { font-size: 12.5px; color: #888; margin-bottom: 4px; }
+  .weather-desc { font-size: 13px; color: #555; margin: 6px 0 4px; }
+  .weather-detail-row { font-size: 12.5px; color: #444; padding: 2px 0; }
+  /* 요청 #132: 시계 클릭 -> 이번 달 달력 팝업(오늘 강조) */
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: 4px; }
+  .calendar-cell { text-align: center; font-size: 12px; padding: 5px 0; border-radius: 4px; color: #333; }
+  .calendar-head { font-weight: 600; color: #888; font-size: 11px; }
+  .calendar-empty { visibility: hidden; }
+  .calendar-today { background: #cce8ff; border: 1px solid #99d1ff; font-weight: 700; color: #0b3d6b; }
+
+  .tray-icons { display: flex; align-items: center; gap: 4px; }
+  .tray-icon {
+    width: 30px; height: 30px; border-radius: 6px; cursor: var(--cur-link);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; background: rgba(0,0,0,.05); font-size: 12px; font-weight: 600; color: #555;
+  }
+  .tray-icon:hover { background: rgba(0,0,0,.1); }
+  .tray-icon img { width: 62%; height: 62%; object-fit: contain; }
+
+  .start-menu {
+    position: fixed; left: 8px; bottom: 58px; width: 260px;
+    background: rgba(255,255,255,.92); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,.6); border-radius: 10px;
+    box-shadow: 0 14px 44px rgba(0,0,0,.35);
+    padding: 14px; display: none; z-index: 2010;
+  }
+  .start-menu.open { display: block; }
+  .start-menu-user { display: flex; align-items: center; gap: 12px; }
+  .avatar {
+    width: 44px; height: 44px; border-radius: 50%; flex: 0 0 44px;
+    background: #0078d4; color: #fff; font-size: 17px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .user-info { min-width: 0; }
+  .user-name { font-size: 14px; font-weight: 600; color: #222; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-caption { font-size: 11px; color: #888; margin-top: 1px; }
+  .user-link { font-size: 12px; color: #0078d4; text-decoration: none; display: inline-block; margin-top: 4px; }
+  .user-link:hover { text-decoration: underline; }
+
+  .start-menu-divider { height: 1px; background: rgba(0,0,0,.08); margin: 12px 0; }
+  .start-apps { display: flex; flex-direction: column; gap: 1px; max-height: 260px; overflow-y: auto; }
+  .start-app-row {
+    display: flex; align-items: center; gap: 9px; padding: 7px 8px;
+    border-radius: 6px; cursor: var(--cur-link); font-size: 12.5px; color: #222;
+  }
+  .start-app-row:hover { background: rgba(0,0,0,.06); }
+  .start-app-icon {
+    width: 20px; height: 20px; flex: 0 0 20px; border-radius: 4px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    background: #e8e8e8; font-size: 11px; font-weight: 600; color: #555;
+  }
+  .start-app-icon img { width: 100%; height: 100%; object-fit: cover; }
+  .start-app-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .start-app-chevron { color: #999; font-size: 10px; }
+  .start-submenu {
+    position: fixed; min-width: 190px; max-width: 260px;
+    background: rgba(255,255,255,.96); backdrop-filter: blur(20px);
+    border: 1px solid rgba(0,0,0,.08); border-radius: 8px;
+    box-shadow: 0 12px 34px rgba(0,0,0,.3);
+    padding: 6px; z-index: 2015; display: none;
+  }
+  .start-submenu.open { display: block; }
+
+  /* ---------- 환경설정 창 ---------- */
+  .settings-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.25);
+    display: none; align-items: center; justify-content: center; z-index: 2020;
+  }
+  .settings-overlay.open { display: flex; }
+  .settings-panel {
+    width: 380px; max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 48px);
+    background: rgba(250,250,250,.98); backdrop-filter: blur(20px);
+    border: 1px solid rgba(0,0,0,.08); border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .settings-titlebar {
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border-bottom: 1px solid #e5e5e5; font-size: 13.5px; font-weight: 600; color: #222;
+  }
+  .settings-close { border: none; background: transparent; font-size: 14px; color: #555; cursor: var(--cur-link); padding: 2px 6px; border-radius: 4px; }
+  .settings-close:hover { background: #e9e9e9; }
+  /* 항목이 늘어나 화면보다 길어지면(작은 창/뷰포트) 본문만 스크롤되고 위쪽 닫기 버튼은 항상 보인다 -
+     안 그러면 패널 전체가 화면 중앙정렬되면서 위로 넘쳐 닫기 버튼이 화면 밖으로 밀려날 수 있다. */
+  .settings-body { padding: 14px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+  .settings-row { display: flex; flex-direction: column; gap: 4px; }
+  .settings-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #222; cursor: var(--cur-link); }
+  .settings-check input { width: 15px; height: 15px; }
+  .settings-hint { font-size: 11.5px; color: #888; margin-left: 23px; line-height: 1.4; }
+  .settings-label { font-size: 13px; color: #222; }
+  .settings-select { height: 30px; border: 1px solid #d5d5d5; border-radius: 4px; padding: 0 8px; font-size: 12.5px; background: #fff; }
+  .settings-divider { height: 1px; background: rgba(0,0,0,.08); }
+  .settings-button {
+    height: 30px; border: 1px solid #d5b5b0; border-radius: 4px; padding: 0 12px;
+    font-size: 12.5px; background: #fdf2f0; color: #a03c2e; cursor: var(--cur-link); align-self: flex-start;
+  }
+  .settings-button:hover { background: #fbe4e0; }
+  .settings-button-neutral { border-color: #c9d3dc; background: #f0f4f8; color: #2a4a6b; }
+  .settings-button-neutral:hover { background: #e1eaf3; }
+
+  /* ---------- 커스텀 확인/입력 대화상자 (브라우저 기본 alert/confirm/prompt 대체) ---------- */
+  .confirm-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.25);
+    display: flex; align-items: center; justify-content: center; z-index: 2050;
+  }
+  .confirm-panel {
+    width: min(340px, calc(100vw - 32px)); min-width: 260px; max-width: calc(100vw - 32px);
+    background: rgba(250,250,250,.98); backdrop-filter: blur(20px);
+    border: 1px solid rgba(0,0,0,.08); border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    padding: 18px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .confirm-message { font-size: 13px; color: #222; line-height: 1.5; white-space: pre-line; }
+  .confirm-input {
+    height: 32px; border: 1px solid #d5d5d5; border-radius: 4px; padding: 0 10px;
+    font-size: 13px; outline: none;
+  }
+  .confirm-input:focus { border-color: #0078d4; }
+  .confirm-buttons { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; } /* 요청 #157: 버튼이 많거나 길 때 깨지고 넘치는 대신 자연스러운 줄바꿈으로 */
+  .confirm-buttons .settings-button, .confirm-buttons .settings-button-neutral { align-self: auto; }
+  body.no-aero .confirm-panel { background: #f7f7f7; backdrop-filter: none; }
+
+  /* ---------- 우클릭 커스텀 메뉴 ---------- */
+  .ctx-menu {
+    position: fixed; min-width: 170px;
+    background: rgba(255,255,255,.97); backdrop-filter: blur(16px);
+    border: 1px solid rgba(0,0,0,.08); border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.28);
+    padding: 4px; z-index: 2030; /* 가상 탐색기 창(.df-window, z-index 100+)보다 항상 위에 떠야 함 */
+  }
+  .ctx-item { padding: 7px 10px; font-size: 12.5px; color: #222; border-radius: 5px; cursor: var(--cur-link); }
+  .ctx-item:hover, .ctx-item.ctx-focused { background: rgba(0,0,0,.06); }
+
+  /* ---------- 에어로(반투명 블러) 끄기 옵션 - 환경설정에서 토글, 기본 켜짐 ---------- */
+  body.no-aero .taskbar { background: #f5f5f5; backdrop-filter: none; }
+  body.no-aero .start-menu { background: #ffffff; backdrop-filter: none; }
+  body.no-aero .start-submenu { background: #ffffff; backdrop-filter: none; }
+  body.no-aero .settings-panel { background: #f7f7f7; backdrop-filter: none; }
+  body.no-aero .ctx-menu { background: #ffffff; backdrop-filter: none; }
+
+  /* ---------- 토스트(알림) ---------- */
+  .toast {
+    position: fixed; right: 16px; bottom: 64px; max-width: 320px;
+    background: rgba(35,35,38,.94); color: #fff; border-radius: 8px;
+    padding: 10px 12px; font-size: 12.5px; line-height: 1.5;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    display: flex; align-items: flex-start; gap: 8px;
+    opacity: 0; pointer-events: none; transform: translateY(6px);
+    transition: opacity .15s ease, transform .15s ease;
+    z-index: 2040; /* 가상 탐색기 창(.df-window, z-index 100+)보다 항상 위에 떠야 함 */
+  }
+  .toast.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+  .toast.warn { background: rgba(150,100,20,.92); }
+  .toast-msg { flex: 1; white-space: pre-line; word-break: break-word; }
+  .toast-close { background: transparent; border: none; color: #fff; opacity: .7; cursor: var(--cur-link); font-size: 14px; line-height: 1; padding: 0 2px; }
+  .toast-close:hover { opacity: 1; }
+
+  /* ============ 바탕화면 가상 파일시스템(dexie) - 아이콘 / 다중 탐색기 창 / 내장 에디터 ============ */
+  .desktop { position: relative; }
+  /* pointer-events:none이 핵심 - 아이콘이 없는 빈 공간은 클릭이 그대로 통과해서 메인 창(#win)이
+     눌리고, 아이콘 자기 자신에게만 다시 pointer-events:auto로 켜서 아이콘만 클릭 가능하게 한다.
+     (안 그러면 이 레이어가 z-index로 인해 메인 창 위를 통째로 덮어 클릭을 다 가로채 버린다.) */
+  .df-icon-layer { position: absolute; inset: 0; bottom: 48px; z-index: 1; pointer-events: none; }
+  /* 방향키/F2/Delete가 동작하려면 포커스를 받을 수 있어야 하는데(tabIndex, desktop-fs.js),
+     기본 브라우저 포커스 링은 바탕화면에서 보기 거슬리므로 꺼둔다. */
+  .df-icon-layer:focus { outline: none; }
+  /* 진짜 탐색기 창은 항상 바탕화면 아이콘층(z-index:1)보다 위에 그려져야 한다(실제 윈도우도
+     탐색기 창이 바탕화면 아이콘을 가린다) - 안 그러면 창과 겹친 위치에 새로 만든 아이콘이
+     창을 뚫고 올라와 보이는 버그가 생긴다. */
+  #win { z-index: 2; }
+  .df-icon {
+    position: absolute; width: 84px; padding: 8px 4px; border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    user-select: none; pointer-events: auto;
+  }
+  .df-icon:hover { background: rgba(255,255,255,.12); }
+  .df-icon.selected { background: rgba(255,255,255,.22); }
+  .df-icon .df-icon-glyph { pointer-events: none; }
+  .df-icon .df-icon-label {
+    pointer-events: none; font-size: 12px; color: #fff; text-align: center;
+    text-shadow: 0 1px 3px rgba(0,0,0,.65); word-break: break-word; line-height: 1.25; max-width: 100%;
+  }
+  .df-icon .df-icon-shortcut-badge {
+    position: absolute; left: 22px; top: 22px; font-size: 12px;
+    text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  }
+  /* 드래그 중인 항목을 폴더 위로 끌고 왔을 때(=여기에 놓으면 그 폴더 안으로 이동) 강조 표시 */
+  .df-icon.df-drop-target { background: rgba(120,180,255,.35); outline: 1px dashed #bfe0ff; }
+  .grid-item.df-drop-target { background: #eaf4ff; border-color: #4da3ff; outline: 1px dashed #4da3ff; }
+  .tree-row.df-drop-target, .nav-root.df-drop-target { background: #eaf4ff; border-color: #4da3ff; outline: 1px dashed #4da3ff; }
+  /* 바탕화면 드래그 다중 선택(러버밴드) 박스 - 내용창의 .select-box와 같은 개념이지만, 바탕화면은
+     content-pane처럼 스크롤되는 좌표계가 아니라 뷰포트 좌표계이므로 position:fixed를 쓴다. */
+  /* 버그 리포트(전 스킨 공통): 바탕화면 드래그 다중 선택 박스가 탐색기 창(#win, z-index:2) 위를
+     지나가면 이 박스의 반투명 파란 배경이 창 위에 겹쳐 보여서 "탐색기가 파래진다"는 현상이 있었다 -
+     z-index가 3이라 #win보다 위였기 때문. z-index를 1로 낮춰(.df-icon-layer와 같은 층) 항상 창
+     뒤에서만 그려지게 했다(8개 스킨 전부 동일하게 수정). */
+  .df-select-box {
+    position: fixed; border: 1px solid #0078d4; background: rgba(0,120,212,.15);
+    pointer-events: none; z-index: 1;
+  }
+  /* 에디터는 더 이상 이 창 안에서 그려지지 않는다 - 파일을 열면 완전히 독립된 새 탭으로
+     뜬다(사용자 지시: "에디터는 GUI 내부가 아니라 새 탭으로 열어" / 폴더 탐색기 창이 에디터로
+     "변신"하던 예전 방식은 폐기됨). 그 새 탭의 스타일은 DF_EDITOR_PAGE_CSS(자바스크립트 문자열
+     상수, dfsBuildEditorPageHtml 근처에 있음)에 있다 - 여기 메인 페이지 스타일시트에는 없다. */
+
+  @media (max-width: 720px) {
+    .desktop { padding: 8px 8px 64px; }
+    .window { height: 90vh; max-height: none; }
+    .search-box { display: none; }
+    .nav-toggle { display: flex; }
+    .nav-pane {
+      position: absolute; z-index: 5; top: 0; bottom: 0; left: 0;
+      transform: translateX(-100%);
+      transition: transform .15s ease;
+      box-shadow: 2px 0 10px rgba(0,0,0,.15);
+    }
+    .nav-pane.open { transform: translateX(0); }
+  }
+
+  /* ============ 가짜 마우스(커스텀 커서) 예외 규칙 (요청 11, 정정됨) ============
+     예전엔 "보통 상태"/"평범한 기본 커서"를 브라우저 네이티브 커서(cursor:default)로 잘못
+     구현했었다 - 사용자 지시로 정정: 이 앱 안에서는 네이티브 커서가 아예 나오면 안 되고,
+     "보통 상태"란 body에 깔아둔 커스텀 화살표(가짜 마우스)를 그대로 상속하는 것을 뜻한다.
+     시작/탐색기/배터리/날씨는 각자 자기 규칙에서 클릭 가능 표시로 cursor:pointer를 갖고
+     있었는데(날씨/배터리는 눌러서 상세 정보를 보여줌), 그걸 그대로 var(--cur-link)로
+     바꾸면 안 되고(사용자 지시 - 이 넷은 "평범한" 상태여야 함) 여기서 cursor:inherit으로
+     다시 body의 화살표를 상속하도록 되돌린다. 바탕화면 아이콘(.df-icon)과 시계(.clock)는
+     애초에 자기 cursor 규칙이 없어 상속만으로 이미 화살표이므로 별도 규칙이 필요 없다.
+     반대로 "하이퍼링크처럼 눌리는 곳"도 네이티브 pointer가 아니라 --cur-link(스킨별 커스텀
+     손가락 커서)를 쓴다 - 트레이 퀵런치 아이콘, 시작메뉴 팝업 항목(.start-app-row는 트레이
+     아이콘의 하위 메뉴에도 재사용됨)이 여기 해당하고, 나머지 클릭 가능 요소들(탐색창/뒤로/
+     앞으로/위로/새로고침/주소 표시줄/트리/탐색기 내 파일·폴더 등)은 위에서 이미 cursor:pointer를
+     전부 var(--cur-link)로 일괄 치환해뒀다. */
+  .start-btn, .taskbar-app, .battery, .weather { cursor: inherit; }
+  .tray-icon { cursor: var(--cur-link); }
+  .user-link { cursor: var(--cur-link); }

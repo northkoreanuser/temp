@@ -1,0 +1,34 @@
+{
+  "start": [
+    {
+      "name": "WebTools",
+      "url": "",
+      "icon": "/_NIH_ROOT_/index/ui/icon/menu/startmenu/toolbox.svg",
+      "items": [
+        {
+          "name": "svgviewer",
+          "url": "https://www.svgviewer.dev/",
+          "icon": "https://www.google.com/s2/favicons?sz=64&domain=svgviewer.dev",
+          "popup": true,
+          "width": 900,
+          "height": 640
+        },
+        {
+          "name": "svgrepo",
+          "url": "https://www.svgrepo.com/",
+          "icon": "https://www.google.com/s2/favicons?sz=64&domain=svgrepo.com",
+          "popup": true,
+          "width": 900,
+          "height": 640
+        }
+      ]
+    }
+  ],
+  "tray": [
+    {
+      "name": "새 항목",
+      "url": "https://www.autohotkey.com/download/ahk-v2.exe",
+      "icon": "/_NIH_ROOT_/index/ui/icon/menu/traybar/autohotkey.svg"
+    }
+  ]
+}

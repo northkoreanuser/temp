@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#b8ddb7"/>
+      <stop offset="48%" stop-color="#76ad76"/>
+      <stop offset="100%" stop-color="#0b5b0f"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="13" result="blur"/>
+      <feOffset dx="10" dy="13" result="off"/>
+      <feFlood flood-color="#17351a" flood-opacity=".72" result="color"/>
+      <feComposite in="color" in2="off" operator="in" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Rounded green tile -->
+  <rect x="5" y="5" width="790" height="790" rx="198" ry="198"
+        fill="url(#bg)" stroke="#075d0c" stroke-width="10"/>
+
+  <!-- White H -->
+  <g fill="#fff" filter="url(#shadow)">
+    <!-- left upright -->
+    <path d="M232 141
+             C257 141 277 159 277 183
+             C277 237 275 292 274 345
+             C273 363 271 380 270 395
+             L270 396
+             C336 381 410 366 478 358
+             C492 356 507 355 522 355
+             C523 319 524 278 525 238
+             C526 211 531 190 543 169
+             C553 151 566 141 582 141
+             C607 141 627 159 627 182
+             C627 194 623 207 621 218
+             C618 236 617 256 617 277
+             C615 342 611 409 610 474
+             C610 526 613 570 616 616
+             C618 644 603 661 579 661
+             C550 661 526 644 526 616
+             C526 567 521 515 521 464
+             L521 443
+             C438 450 351 466 270 482
+             C268 526 264 573 262 617
+             C261 644 244 661 217 661
+             C191 661 173 644 173 617
+             C173 594 176 568 178 545
+             C182 502 184 461 184 418
+             L188 183
+             C188 159 206 141 232 141 Z"/>
+  </g>
+</svg>

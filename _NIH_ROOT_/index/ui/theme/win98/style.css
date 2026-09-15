@@ -1,0 +1,508 @@
+  /* ============================================================================
+     Windows 98 스킨 - default 테마(../default/style.css)와 완전히 같은 선택자 구조를 그대로
+     따르는 "드롭인 교체" 스타일시트다. HTML/JS는 전혀 건드리지 않고, 환경설정의 테마 드롭다운이
+     이 파일의 <link href>만 바꿔치기한다(applyTheme, _NIH_ROOT_/index/settings-startmenu.js).
+     레이아웃(flex/position/z-index/크기)은 default와 동일하게 유지하고, 색/테두리/그림자/폰트만
+     Win98 느낌(각진 모서리 + 볼록/오목 베벨 + 남색 타이틀바 + 회색 크롬)으로 바꿨다.
+     ============================================================================ */
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  /* 드래그로 화면 텍스트/UI가 긁히는 것도(우클릭/드래그 우회의 전제 조건) 막는다(사용자 지시) -
+     입력창(검색창, 이름변경 대화상자 등)만 예외. */
+  body { user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; }
+  input, textarea { user-select: text; -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; cursor: text; }
+  body {
+    font-family: Tahoma, "MS Sans Serif", "Malgun Gothic", "맑은 고딕", sans-serif;
+    background: #008080; /* 클래식 Win98 바탕화면 청록색 */
+    min-height: 100%;
+    /* 참조 코드의 클래식 98 화살표 커서(검정 테두리 + 흰 속) - 사용자가 준 예시 그대로 */
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><polygon points="2,2 2,26 8,20 14,26 17,24 11,18 20,18" fill="black"/><polygon points="4,4 4,22 8,17 13,22 15,20 10,15 17,15" fill="white"/></svg>') 2 2, auto;
+    --cur-link: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="28" viewBox="0 0 24 28"><g fill="black"><rect x="9" y="1" width="5" height="13" rx="1"/><rect x="2" y="12" width="6" height="10" rx="1"/><rect x="4" y="9" width="17" height="15" rx="2"/></g><g fill="white"><rect x="10" y="2.4" width="3" height="10"/><rect x="3.2" y="13" width="4" height="7.5"/><rect x="5.3" y="10.3" width="14.5" height="12" rx="1"/></g></svg>') 11 2, pointer;
+  }
+
+  /* ---------- 베벨(입체 테두리) 재사용 값 ----------
+     raised = 튀어나온 버튼/창 느낌, sunken = 들어간 입력창/미리보기 느낌, raised-thin = 얇은 버전 */
+  .window, .settings-panel, .confirm-panel, .ctx-menu, .start-menu, .start-submenu, .toast,
+  .tool-btn, .tb-btn, .settings-button, .settings-button-neutral, .start-btn, .taskbar-app,
+  .tray-icon, .search-box input, .address-bar, .settings-select, .confirm-input, .df-icon.selected {
+    border-radius: 0 !important;
+  }
+
+  .desktop {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 24px 72px;
+  }
+
+  /* ---------- 창(window) ---------- */
+  .window {
+    position: relative;
+    width: 960px;
+    max-width: 100%;
+    height: 640px;
+    max-height: 85vh;
+    background: #c0c0c0;
+    /* 바깥쪽 남색 테두리(0 0 0 1px #000080)를 추가했다 - 예전엔 회색 베벨만 있어서
+       타이틀바의 남색과 어울리는 "파란 테두리"가 창 프레임에 전혀 없었다(요청 3-나). */
+    box-shadow:
+      inset 1px 1px 0 #fff, inset -1px -1px 0 #000,
+      inset 2px 2px 0 #dfdfdf, inset -2px -2px 0 #808080,
+      0 0 0 1px #000080,
+      3px 3px 8px rgba(0,0,0,.4);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: width .15s ease, height .15s ease;
+  }
+  .window.resizing { transition: none; }
+  .window.positioned { max-width: none; max-height: none; }
+  .rz { position: absolute; z-index: 20; }
+  .rz-n, .rz-s { left: 6px; right: 6px; height: 6px; cursor: ns-resize; }
+  .rz-n { top: -3px; } .rz-s { bottom: -3px; }
+  .rz-e, .rz-w { top: 6px; bottom: 6px; width: 6px; cursor: ew-resize; }
+  .rz-e { right: -3px; } .rz-w { left: -3px; }
+  .rz-ne, .rz-nw, .rz-se, .rz-sw { width: 12px; height: 12px; }
+  .rz-ne { top: -3px; right: -3px; cursor: nesw-resize; }
+  .rz-nw { top: -3px; left: -3px; cursor: nwse-resize; }
+  .rz-se { bottom: -3px; right: -3px; cursor: nwse-resize; }
+  .rz-sw { bottom: -3px; left: -3px; cursor: nesw-resize; }
+  .window.maximized .rz { display: none; }
+  .window.maximized {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 48px;
+    width: auto; height: auto;
+    margin: 0;
+    max-width: none;
+    max-height: none;
+  }
+  .window.positioned { position: fixed; margin: 0; }
+  .window.minimized { display: none; }
+  .window.closed { display: none; }
+
+  .titlebar {
+    flex: 0 0 26px;
+    background: linear-gradient(90deg, #000080, #1084d0);
+    border-bottom: none;
+    display: flex;
+    align-items: center;
+    padding-left: 4px;
+    user-select: none;
+  }
+  .tb-icon { font-size: 13px; margin-right: 5px; filter: grayscale(0) brightness(1.3); }
+  .tb-title { font-size: 12px; font-weight: 700; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tb-controls { display: flex; height: 100%; align-items: center; gap: 2px; padding-right: 3px; }
+  .tb-btn {
+    width: 18px; height: 16px; padding: 0; border: none;
+    background: #c0c0c0; font-size: 11px; line-height: 1; color: #000; cursor: var(--cur-link);
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #000, inset 2px 2px 0 #dfdfdf, inset -2px -2px 0 #808080;
+  }
+  .tb-btn:hover { background: #c0c0c0; }
+  .tb-btn:active { box-shadow: inset -1px -1px 0 #fff, inset 1px 1px 0 #000, inset -2px -2px 0 #dfdfdf, inset 2px 2px 0 #808080; }
+  .tb-close:hover { background: #c0c0c0; color: #000; }
+
+  /* ---------- 도구모음 / 주소표시줄 ---------- */
+  .toolbar {
+    flex: 0 0 40px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 6px;
+    background: #c0c0c0;
+    border-bottom: 1px solid #808080;
+  }
+  .tool-btn {
+    width: 28px; height: 28px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: var(--cur-link);
+    font-size: 13px;
+    color: #000;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tool-btn:hover:not(:disabled) {
+    background: #c0c0c0;
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #000, inset 2px 2px 0 #dfdfdf, inset -2px -2px 0 #808080;
+  }
+  .tool-btn:active:not(:disabled) {
+    box-shadow: inset -1px -1px 0 #fff, inset 1px 1px 0 #000, inset -2px -2px 0 #dfdfdf, inset 2px 2px 0 #808080;
+  }
+  .tool-btn:disabled { color: #808080; cursor: inherit; }
+  .nav-toggle { display: flex; }
+  .address-bar {
+    flex: 1; height: 24px;
+    background: #fff;
+    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
+    display: flex; align-items: center; padding: 0 6px; gap: 3px;
+    font-size: 12px; color: #000;
+    overflow-x: auto; white-space: nowrap;
+  }
+  .address-bar::-webkit-scrollbar { display: none; }
+  .crumb { cursor: var(--cur-link); padding: 1px 4px; }
+  .crumb:hover { background: #000080; color: #fff; }
+  .crumb-sep { color: #808080; }
+  .search-box { width: 170px; height: 24px; flex: 0 0 auto; }
+  .search-box input {
+    width: 100%; height: 100%; box-sizing: border-box;
+    border: none; padding: 0 6px;
+    background: #fff;
+    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
+    font-size: 12px; outline: none;
+  }
+  .search-box input:focus { outline: 1px dotted #000; outline-offset: -3px; }
+
+  /* ---------- 본문 (탐색창 + 내용창) ---------- */
+  .body-area { flex: 1; display: flex; min-height: 0; position: relative; }
+
+  .nav-pane {
+    width: 200px; flex: 0 0 200px;
+    background: #fff;
+    border-right: 1px solid #808080;
+    box-shadow: inset 1px 0 0 #000;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding: 4px 0;
+    font-size: 12px;
+    user-select: none;
+    outline: none;
+  }
+  .nav-pane:not(.open) { display: none; }
+  .nav-root {
+    display: flex; align-items: center; gap: 5px;
+    padding: 2px 8px; margin: 0 2px 1px;
+    cursor: var(--cur-link); font-weight: 700; color: #000;
+    border: 1px solid transparent;
+    width: fit-content; max-width: none;
+  }
+  .nav-root:hover { background: #000080; color: #fff; }
+  .nav-root.selected { background: #000080; color: #fff; border-color: #000080; }
+  .nav-root.kbd-focus, .tree-row.kbd-focus { outline: 1px dotted #000; outline-offset: -1px; }
+  .tree-row {
+    display: flex; align-items: center; gap: 4px;
+    padding: 2px 6px; margin: 0 2px;
+    cursor: var(--cur-link); color: #000;
+    white-space: nowrap; border: 1px solid transparent;
+    width: fit-content; max-width: none;
+  }
+  .tree-row:hover { background: #000080; color: #fff; }
+  .tree-row.selected { background: #000080; color: #fff; border-color: #000080; }
+  .tree-row.tree-loading { color: #808080; font-style: italic; cursor: inherit; }
+  .tree-row.tree-loading:hover { background: transparent; color: #808080; }
+  .tree-arrow { width: 12px; flex: 0 0 12px; text-align: center; color: #000; font-size: 9px; }
+  .tree-arrow.empty { visibility: hidden; }
+
+  .content-pane { flex: 1; overflow-y: auto; padding: 10px; background: #fff; position: relative; outline: none; user-select: none; }
+  .search-heading { font-size: 12px; color: #444; margin-bottom: 10px; }
+  .select-box {
+    position: absolute; border: 1px dotted #000; background: rgba(0,0,128,.18);
+    pointer-events: none; z-index: 5;
+  }
+  .grid { display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; }
+  .grid-item {
+    width: 92px; padding: 6px 4px; text-align: center;
+    cursor: var(--cur-link); border: 1px solid transparent;
+  }
+  .grid-item.flat { width: 128px; }
+  .grid-item:hover { background: #dcdcf0; border: 1px dotted #000080; }
+  .grid-item.selected { background: #000080; border: 1px dotted #000; }
+  .grid-item.selected .label { color: #fff; }
+  .grid-item .icon { margin: 0 auto 4px; display: flex; justify-content: center; }
+  .grid-item .label { font-size: 11px; color: #000; word-break: break-word; line-height: 1.3; }
+  .grid-item .sub { font-size: 10px; color: #555; margin-top: 2px; word-break: break-all; line-height: 1.2; }
+  .empty-msg, .status-msg { color: #444; font-size: 12px; padding: 18px 4px; }
+
+  .status-bar {
+    flex: 0 0 22px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 8px; background: #c0c0c0;
+    box-shadow: inset 0 1px 0 #808080;
+    font-size: 11px; color: #000;
+  }
+  .status-bar a { color: #000080; text-decoration: none; }
+  .status-bar a:hover { text-decoration: underline; }
+
+  /* ---------- 작업 표시줄 / 시작 메뉴 / 트레이 ---------- */
+  .taskbar {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 30px;
+    display: flex; align-items: center; justify-content: flex-start; gap: 4px;
+    padding-left: 2px;
+    background: #c0c0c0;
+    box-shadow: inset 0 1px 0 #fff;
+    border-top: none;
+    z-index: 10;
+  }
+  .start-btn, .taskbar-app {
+    height: 24px; padding: 0 8px;
+    display: flex; align-items: center; gap: 5px;
+    cursor: var(--cur-link); font-size: 12px; font-weight: 700; color: #000;
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #000, inset 2px 2px 0 #dfdfdf, inset -2px -2px 0 #808080;
+  }
+  .start-btn { width: auto; justify-content: center; padding: 0 8px; font-size: 13px; color: #000; }
+  .start-btn:hover, .taskbar-app:hover { background: #c0c0c0; }
+  .start-btn:active {
+    box-shadow: inset -1px -1px 0 #fff, inset 1px 1px 0 #000, inset -2px -2px 0 #dfdfdf, inset 2px 2px 0 #808080;
+  }
+  .taskbar-app.active {
+    background: #c0c0c0;
+    box-shadow: inset -1px -1px 0 #fff, inset 1px 1px 0 #000, inset -2px -2px 0 #dfdfdf, inset 2px 2px 0 #808080;
+  }
+  .tray-right {
+    position: absolute; right: 4px; display: flex; align-items: center; gap: 8px;
+    height: 24px; padding: 0 6px;
+    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
+  }
+  .clock { font-size: 11px; color: #000; text-align: center; line-height: 1.2; user-select: none; white-space: nowrap; }
+  .battery {
+    display: flex; align-items: center; gap: 4px;
+    padding: 2px 4px; cursor: inherit;
+    font-size: 11px; color: #000;
+  }
+  .battery:hover { background: transparent; }
+  .battery .bicon { font-size: 14px; line-height: 1; }
+  .weather {
+    display: flex; align-items: center; gap: 4px; cursor: var(--cur-link);
+    font-size: 11px; color: #000; padding: 2px 4px; user-select: none;
+  }
+  .weather:hover { background: transparent; }
+  .weather .wicon { font-size: 14px; line-height: 1; }
+  .weather-big { display: flex; align-items: center; gap: 14px; }
+  .weather-big .wicon-big { font-size: 40px; line-height: 1; }
+  .weather-big .temp-big { font-size: 26px; font-weight: 700; color: #000; }
+  .weather-place { font-size: 12px; color: #444; margin-bottom: 4px; }
+  .weather-desc { font-size: 12px; color: #333; margin: 6px 0 4px; }
+  .weather-detail-row { font-size: 12px; color: #222; padding: 2px 0; }
+  /* 요청 #132: 시계 클릭 -> 이번 달 달력 팝업(오늘 강조) */
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: 4px; }
+  .calendar-cell { text-align: center; font-size: 12px; padding: 5px 0; color: #000; }
+  .calendar-head { font-weight: 700; color: #444; font-size: 11px; }
+  .calendar-empty { visibility: hidden; }
+  .calendar-today { background: #000080; color: #fff; font-weight: 700; }
+
+  .tray-icons { display: flex; align-items: center; gap: 2px; }
+  .tray-icon {
+    width: 22px; height: 22px; cursor: var(--cur-link);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; background: transparent; font-size: 11px; font-weight: 700; color: #000;
+  }
+  .tray-icon:hover { background: #dcdcf0; }
+  .tray-icon img { width: 70%; height: 70%; object-fit: contain; }
+
+  .start-menu {
+    position: fixed; left: 2px; bottom: 34px; width: 240px;
+    background: #c0c0c0;
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #000, inset 2px 2px 0 #dfdfdf, inset -2px -2px 0 #808080, 3px 3px 8px rgba(0,0,0,.4);
+    padding: 3px; display: none; z-index: 2010;
+    padding-left: 26px; /* 왼쪽 남색 세로 막대(아래 ::before) 자리 */
+  }
+  /* position:fixed도 절대배치 자식(::before)의 기준이 되므로 여기서 position을 다시 바꿀 필요는
+     없다 - 예전에 실수로 position:relative를 얹었더니 fixed가 깨져서 화면 밖으로 밀려났었다. */
+  .start-menu.open { display: block; }
+  .start-menu::before {
+    content: ""; position: absolute; left: 3px; top: 3px; bottom: 3px; width: 20px;
+    background: linear-gradient(180deg, #000080, #1084d0);
+  }
+  .start-menu-user { display: flex; align-items: center; gap: 10px; padding: 4px; }
+  .avatar {
+    width: 38px; height: 38px; flex: 0 0 38px;
+    background: #000080; color: #fff; font-size: 15px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #000;
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .user-info { min-width: 0; }
+  .user-name { font-size: 13px; font-weight: 700; color: #000; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-caption { font-size: 10.5px; color: #444; margin-top: 1px; }
+  .user-link { font-size: 11px; color: #000080; text-decoration: none; display: inline-block; margin-top: 3px; }
+  .user-link:hover { text-decoration: underline; }
+
+  .start-menu-divider { height: 1px; background: #808080; box-shadow: 0 1px 0 #fff; margin: 6px 4px; }
+  .start-apps { display: flex; flex-direction: column; gap: 0; max-height: 260px; overflow-y: auto; padding: 2px; }
+  .start-app-row {
+    display: flex; align-items: center; gap: 8px; padding: 4px 6px;
+    cursor: var(--cur-link); font-size: 12px; color: #000;
+  }
+  .start-app-row:hover { background: #000080; color: #fff; }
+  .start-app-row:hover .start-app-chevron { color: #fff; }
+  .start-app-icon {
+    width: 18px; height: 18px; flex: 0 0 18px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    background: #dfdfdf; font-size: 10px; font-weight: 700; color: #000;
+  }
+  .start-app-icon img { width: 100%; height: 100%; object-fit: cover; }
+  .start-app-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .start-app-chevron { color: #444; font-size: 10px; }
+  .start-submenu {
+    position: fixed; min-width: 180px; max-width: 260px;
+    background: #c0c0c0;
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #000, inset 2px 2px 0 #dfdfdf, inset -2px -2px 0 #808080, 3px 3px 8px rgba(0,0,0,.4);
+    padding: 3px; z-index: 2015; display: none;
+  }
+  .start-submenu.open { display: block; }
+
+  /* ---------- 환경설정 창 ---------- */
+  .settings-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.35);
+    display: none; align-items: center; justify-content: center; z-index: 2020;
+  }
+  .settings-overlay.open { display: flex; }
+  .settings-panel {
+    width: 380px; max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 48px);
+    background: #c0c0c0;
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #000, inset 2px 2px 0 #dfdfdf, inset -2px -2px 0 #808080, 3px 3px 8px rgba(0,0,0,.4);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .settings-titlebar {
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 6px; background: linear-gradient(90deg, #000080, #1084d0);
+    font-size: 12px; font-weight: 700; color: #fff;
+  }
+  .settings-close {
+    border: none; background: #c0c0c0; font-size: 11px; color: #000; cursor: var(--cur-link); padding: 1px 6px;
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #000, inset 2px 2px 0 #dfdfdf, inset -2px -2px 0 #808080;
+  }
+  .settings-close:hover { background: #c0c0c0; }
+  .settings-body { padding: 12px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1 1 auto; min-height: 0; background: #c0c0c0; }
+  .settings-row { display: flex; flex-direction: column; gap: 4px; }
+  .settings-check { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #000; cursor: var(--cur-link); }
+  .settings-check input { width: 13px; height: 13px; }
+  .settings-hint { font-size: 11px; color: #444; margin-left: 20px; line-height: 1.4; }
+  .settings-label { font-size: 12px; color: #000; }
+  .settings-select {
+    height: 24px; border: none; padding: 0 6px; font-size: 12px; background: #fff;
+    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
+  }
+  .settings-divider { height: 1px; background: #808080; box-shadow: 0 1px 0 #fff; }
+  .settings-button {
+    height: 24px; border: none; padding: 0 12px;
+    font-size: 12px; background: #c0c0c0; color: #000; cursor: var(--cur-link); align-self: flex-start;
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #000, inset 2px 2px 0 #dfdfdf, inset -2px -2px 0 #808080;
+  }
+  .settings-button:hover { background: #c0c0c0; }
+  .settings-button:active { box-shadow: inset -1px -1px 0 #fff, inset 1px 1px 0 #000, inset -2px -2px 0 #dfdfdf, inset 2px 2px 0 #808080; }
+  .settings-button-neutral { background: #c0c0c0; color: #000; }
+  .settings-button-neutral:hover { background: #c0c0c0; }
+
+  /* ---------- 커스텀 확인/입력 대화상자 ---------- */
+  .confirm-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.35);
+    display: flex; align-items: center; justify-content: center; z-index: 2050;
+  }
+  .confirm-panel {
+    width: min(340px, calc(100vw - 32px)); min-width: 260px; max-width: calc(100vw - 32px);
+    background: #c0c0c0;
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #000, inset 2px 2px 0 #dfdfdf, inset -2px -2px 0 #808080, 3px 3px 8px rgba(0,0,0,.4);
+    padding: 14px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .confirm-message { font-size: 12px; color: #000; line-height: 1.5; white-space: pre-line; }
+  .confirm-input {
+    height: 26px; border: none; padding: 0 8px;
+    background: #fff;
+    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
+    font-size: 12px; outline: none;
+  }
+  .confirm-input:focus { outline: 1px dotted #000; outline-offset: -3px; }
+  .confirm-buttons { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; } /* 요청 #157: 버튼이 많거나 길 때 깨지고 넘치는 대신 자연스러운 줄바꿈으로 */
+  .confirm-buttons .settings-button, .confirm-buttons .settings-button-neutral { align-self: auto; }
+  body.no-aero .confirm-panel { background: #c0c0c0; }
+
+  /* ---------- 우클릭 커스텀 메뉴 ---------- */
+  .ctx-menu {
+    position: fixed; min-width: 160px;
+    background: #c0c0c0;
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #000, inset 2px 2px 0 #dfdfdf, inset -2px -2px 0 #808080, 2px 2px 6px rgba(0,0,0,.35);
+    padding: 2px; z-index: 2030;
+  }
+  .ctx-item { padding: 4px 10px; font-size: 12px; color: #000; cursor: var(--cur-link); }
+  .ctx-item:hover, .ctx-item.ctx-focused { background: #000080; color: #fff; }
+
+  /* ---------- 에어로(반투명) 옵션 - Win98에는 애초에 블러가 없으므로 켜져 있어도 항상 불투명하다 ---------- */
+  body.no-aero .taskbar, .taskbar { background: #c0c0c0; backdrop-filter: none; }
+  body.no-aero .start-menu, .start-menu { backdrop-filter: none; }
+  body.no-aero .start-submenu, .start-submenu { backdrop-filter: none; }
+  body.no-aero .settings-panel, .settings-panel { backdrop-filter: none; }
+  body.no-aero .ctx-menu, .ctx-menu { backdrop-filter: none; }
+
+  /* ---------- 토스트(알림) ---------- */
+  .toast {
+    position: fixed; right: 12px; bottom: 40px; max-width: 320px;
+    background: #c0c0c0; color: #000;
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #000, inset 2px 2px 0 #dfdfdf, inset -2px -2px 0 #808080, 3px 3px 8px rgba(0,0,0,.4);
+    padding: 8px 10px; font-size: 12px; line-height: 1.5;
+    display: flex; align-items: flex-start; gap: 8px;
+    opacity: 0; pointer-events: none; transform: translateY(6px);
+    transition: opacity .15s ease, transform .15s ease;
+    z-index: 2040;
+  }
+  .toast.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+  .toast.warn { background: #c0c0c0; border-top: 3px solid #ffbf00; }
+  .toast-msg { flex: 1; white-space: pre-line; word-break: break-word; }
+  .toast-close { background: transparent; border: none; color: #000; opacity: .7; cursor: var(--cur-link); font-size: 13px; line-height: 1; padding: 0 2px; }
+  .toast-close:hover { opacity: 1; }
+
+  /* ============ 바탕화면 가상 파일시스템(dexie) - 아이콘 / 다중 탐색기 창 / 내장 에디터 ============ */
+  .desktop { position: relative; }
+  .df-icon-layer { position: absolute; inset: 0; bottom: 48px; z-index: 1; pointer-events: none; }
+  /* 방향키/F2/Delete가 동작하려면 포커스를 받을 수 있어야 하는데(tabIndex, desktop-fs.js),
+     기본 브라우저 포커스 링은 바탕화면에서 보기 거슬리므로 꺼둔다. */
+  .df-icon-layer:focus { outline: none; }
+  #win { z-index: 2; }
+  .df-icon {
+    position: absolute; width: 80px; padding: 6px 4px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    user-select: none; pointer-events: auto;
+  }
+  .df-icon:hover { background: rgba(255,255,255,.15); }
+  .df-icon.selected { background: rgba(0,0,128,.55); outline: 1px dotted #fff; outline-offset: -2px; }
+  .df-icon .df-icon-glyph { pointer-events: none; }
+  .df-icon .df-icon-label {
+    pointer-events: none; font-size: 11px; color: #fff; text-align: center;
+    text-shadow: 1px 1px 0 #000; word-break: break-word; line-height: 1.25; max-width: 100%;
+  }
+  .df-icon .df-icon-shortcut-badge {
+    position: absolute; left: 20px; top: 20px; font-size: 11px;
+    text-shadow: 1px 1px 0 #000;
+  }
+  .df-icon.df-drop-target { background: rgba(0,0,128,.4); outline: 1px dashed #fff; }
+  .grid-item.df-drop-target { background: #dcdcf0; border: 1px dashed #000080; }
+  .tree-row.df-drop-target, .nav-root.df-drop-target { background: #dcdcf0; border: 1px dashed #000080; }
+  /* 바탕화면 드래그 다중 선택(러버밴드) 박스 - 내용창의 .select-box와 같은 스타일 */
+  .df-select-box {
+    position: fixed; border: 1px dotted #fff; background: rgba(0,0,128,.25);
+    pointer-events: none; z-index: 1;
+  }
+
+  @media (max-width: 720px) {
+    .desktop { padding: 8px 8px 64px; }
+    .window { height: 90vh; max-height: none; }
+    .search-box { display: none; }
+    .nav-toggle { display: flex; }
+    .nav-pane {
+      position: absolute; z-index: 5; top: 0; bottom: 0; left: 0;
+      transform: translateX(-100%);
+      transition: transform .15s ease;
+      box-shadow: 2px 0 10px rgba(0,0,0,.15);
+    }
+    .nav-pane.open { transform: translateX(0); }
+  }
+
+  /* ============ 가짜 마우스(커스텀 커서) 예외 규칙 (요청 11, 정정됨) ============
+     예전엔 "보통 상태"/"평범한 기본 커서"를 브라우저 네이티브 커서(cursor:default)로 잘못
+     구현했었다 - 사용자 지시로 정정: 이 앱 안에서는 네이티브 커서가 아예 나오면 안 되고,
+     "보통 상태"란 body에 깔아둔 커스텀 화살표(가짜 마우스)를 그대로 상속하는 것을 뜻한다.
+     시작/탐색기/배터리/날씨는 각자 자기 규칙에서 클릭 가능 표시로 cursor:pointer를 갖고
+     있었는데(날씨/배터리는 눌러서 상세 정보를 보여줌), 그걸 그대로 var(--cur-link)로
+     바꾸면 안 되고(사용자 지시 - 이 넷은 "평범한" 상태여야 함) 여기서 cursor:inherit으로
+     다시 body의 화살표를 상속하도록 되돌린다. 바탕화면 아이콘(.df-icon)과 시계(.clock)는
+     애초에 자기 cursor 규칙이 없어 상속만으로 이미 화살표이므로 별도 규칙이 필요 없다.
+     반대로 "하이퍼링크처럼 눌리는 곳"도 네이티브 pointer가 아니라 --cur-link(스킨별 커스텀
+     손가락 커서)를 쓴다 - 트레이 퀵런치 아이콘, 시작메뉴 팝업 항목(.start-app-row는 트레이
+     아이콘의 하위 메뉴에도 재사용됨)이 여기 해당하고, 나머지 클릭 가능 요소들(탐색창/뒤로/
+     앞으로/위로/새로고침/주소 표시줄/트리/탐색기 내 파일·폴더 등)은 위에서 이미 cursor:pointer를
+     전부 var(--cur-link)로 일괄 치환해뒀다. */
+  .start-btn, .taskbar-app, .battery, .weather { cursor: inherit; }
+  .tray-icon { cursor: var(--cur-link); }
+  .user-link { cursor: var(--cur-link); }
